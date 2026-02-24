@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROdom — Магазин хозяйственных товаров</title>
+<link rel="stylesheet" href="/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="container header-container">
+
+            <a href="index.html" class="logo-wrapper">
+                <img src="images/logo.svg" class="logo-img" alt="PROdom">
+                <span class="logo-text">PROdom</span>
+            </a>
+
+            <nav class="nav">
+                <a href="pages/about.html">О нас</a>
+                <a href="index.html" class="active">Главная</a>
+                <a href="pages/catalogue.html">Каталог</a>
+                <a href="pages/contacts.html">Контакты</a>
+                <a href="admin/admin.html" class="admin-nav-link">Админ</a>
+            </nav>
+
+            <div class="header-actions">
+                <input type="text" placeholder="Поиск..." class="input">
+                <a href="pages/favourites.html">
+                    <img src="images/like.svg" alt="Избранное">
+                    <span class="fav-count">0</span>
+                </a>
+                <a href="pages/cart.html">
+                    <img src="images/cart.svg" alt="Корзина">
+                    <span class="cart-count">0</span>
+                </a>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="container hero-container">
+
+            <div class="hero-text">
+                <h1>Все для дома — в одном месте</h1>
+                <p>Качественные хозяйственные товары и инструменты для вашего комфорта.</p>
+                <a href="./pages/catalogue.html" class="btn-primary">Перейти в каталог</a>
+            </div>
+
+            <div class="hero-image-wrapper">
+                <img src="images/Гостиная 2.jpg" class="hero-image" alt="Интерьер">
+            </div>
+
+        </div>
+    </section>
+
+    <main class="container">
+
+        <!-- КАТЕГОРИИ -->
+        <section class="catalog">
+
+            <h2 class="section-title">Категории</h2>
+
+            <div class="catalog-grid">
+
+                <a class="category-card" href="pages/catalogue.html?category=%D1%81%D0%B0%D0%BD%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B0">
+                    <img src="images/plumber.svg" alt="Сантехника">
+                    <span>Сантехника</span>
+                </a>
+
+                <a class="category-card" href="pages/catalogue.html?category=%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D1%80%D0%B8%D0%B1%D0%BE%D1%80%D1%8B">
+                    <img src="images/vacuum-cleaner.svg" alt="Электроприборы">
+                    <span>Электроприборы</span>
+                </a>
+
+                <a class="category-card" href="pages/catalogue.html?category=%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BC%D0%B0%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BB%D1%8B">
+                    <img src="images/construction.svg" alt="Стройматериалы">
+                    <span>Стройматериалы</span>
+                </a>
+
+                <a class="category-card" href="pages/catalogue.html?category=%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D1%8B%20%D0%B4%D0%BB%D1%8F%20%D0%B4%D0%BE%D0%BC%D0%B0">
+                    <img src="images/paint-brush.svg" alt="Товары для дома">
+                    <span>Товары для дома</span>
+                </a>
+
+                <a class="category-card" href="pages/catalogue.html?category=%D0%B8%D0%BD%D1%81%D1%82%D1%80%D1%83%D0%BC%D0%B5%D0%BD%D1%82%D1%8B">
+                    <img src="images/tools.svg" alt="Инструменты">
+                    <span>Инструменты</span>
+                </a>
+
+            </div>
+        </section>
+
+        <!-- ПОПУЛЯРНОЕ -->
+        <section class="popular">
+
+            <h2 class="section-title">Популярное</h2>
+
+            <div class="products-grid">
+
+            <div class="product-card" data-category="электроприборы">
+            <img src="images/vacuumcleaner.jpg" alt="Пылесос">
+            <h4>Пылесос</h4>
+            <h5>Компактный и мощный пылесос для сухой уборки дома.</h5>
+            <p class="product-category">Электроприборы</p>
+            <p class="price">8 990 ₽</p>
+            <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="товары для дома">
+            <img src="images/mop.jpg" alt="Швабра">
+            <h4>Швабра</h4>
+            <h5>Удобная швабра с насадкой из микрофибры.</h5>
+            <p class="product-category">Товары для дома</p>
+            <p class="price">1 290 ₽</p>
+            <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="инструменты">
+            <img src="images/pliers.jpg" alt="Плоскогубцы">
+            <h4>Плоскогубцы</h4>
+            <h5>Надежные плоскогубцы для захвата и фиксации деталей.</h5>
+            <p class="product-category">Инструменты</p>
+            <p class="price">790 ₽</p>
+            <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="инструменты">
+            <img src="images/screwdriver.jpg" alt="Отвертка">
+            <h4>Отвертка</h4>
+            <h5>Универсальная отвертка для домашнего ремонта.</h5>
+            <p class="product-category">Инструменты</p>
+            <p class="price">490 ₽</p>
+            <button class="btn-primary">В корзину</button>
+            </div>
+
+            </div>
+        </section>
+
+</main>
+
+    <footer class="footer">
+        <div class="container">
+
+        <div class="newsletter">
+        <div>
+        <h3>Готовы узнавать о новинках?</h3>
+        <input type="email" placeholder="Ваш Email" class="input">
+        <button class="btn-primary">Отправить</button>
+        </div>
+
+        <div>
+        <h4>Товары для дома</h4>
+        <p>Мы создаём комфорт и уют вместе с вами.</p>
+        </div>
+        </div>
+
+        <div class="footer-bottom">
+        © 2026 PROdom. Все права защищены.
+        </div>
+
+        </div>
+    </footer>
+
+<script src="/script.js"></script>
+</body>
+</html>

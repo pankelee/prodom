@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROdom Admin</title>
+  <style>
+    :root {
+      --bg: #f3f7fb;
+      --panel: #ffffff;
+      --ink: #0f274b;
+      --muted: #4d6285;
+      --line: #d7e2f0;
+      --brand: #2f67b5;
+      --brand-soft: #e8f1ff;
+      --danger: #c43d3d;
+      --ok: #2d8755;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      color: var(--ink);
+    }
+
+    .wrap {
+      width: min(1180px, 94vw);
+      margin: 24px auto 40px;
+    }
+
+    .topbar {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .btn-brand {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .btn-soft {
+      background: var(--brand-soft);
+      border-color: #bfd6f7;
+      color: #154b95;
+    }
+
+    .btn-danger {
+      background: #fff1f1;
+      border-color: #efc7c7;
+      color: var(--danger);
+    }
+
+    .btn-ghost {
+      border-color: var(--line);
+      color: var(--muted);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .category-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0;
+      display: grid;
+      gap: 7px;
+    }
+
+    .category-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: #fcfdff;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.ok {
+      background: #e9f8ef;
+      color: var(--ok);
+      border: 1px solid #bde7ca;
+    }
+
+    .status.warn {
+      background: #fff8e9;
+      color: #9b6b0d;
+      border: 1px solid #f3e2b8;
+    }
+
+    .products-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+      display: grid;
+      gap: 8px;
+    }
+
+    .thumb {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #f0f4fa;
+    }
+
+    .meta h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .meta p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .meta .price {
+      color: var(--ink);
+      font-weight: 700;
+      margin-top: 5px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--brand-soft);
+      color: #2157a7;
+      border: 1px solid #bfd6f7;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .preview {
+      width: 100%;
+      height: 150px;
+      border: 1px dashed #b4c7e3;
+      border-radius: 10px;
+      object-fit: contain;
+      background: #f6f9ff;
+    }
+
+    .empty {
+      border: 1px dashed #b9cbe7;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .products-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="topbar">
+      <div>
+        <h1 class="title">Админ-панель PROdom</h1>
+        <p class="subtitle">Управление категориями фильтров и карточками товаров. Не подключено к основному сайту.</p>
+      </div>
+      <button id="reset-all" class="btn btn-danger" type="button">Сбросить все данные</button>
+    </section>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>Категории фильтра</h2>
+        <div class="field">
+          <label for="category-limit">Количество категорий</label>
+          <input id="category-limit" type="number" min="1" max="50" value="5">
+        </div>
+
+        <div class="field">
+          <label for="new-category">Добавить категорию</label>
+          <div class="row">
+            <input id="new-category" type="text" placeholder="Например, Сантехника">
+            <button id="add-category" class="btn btn-soft" type="button">Добавить</button>
+          </div>
+        </div>
+
+        <p id="category-counter" class="muted">0 / 0</p>
+        <ul id="category-list" class="category-list"></ul>
+
+        <div id="category-status" class="status"></div>
+      </section>
+
+      <section class="panel">
+        <div class="products-head">
+          <h2>Карточки товаров</h2>
+          <button id="export-data" class="btn btn-ghost" type="button">Экспорт JSON</button>
+        </div>
+
+        <form id="product-form" novalidate>
+          <input id="product-id" type="hidden">
+
+          <div class="field">
+            <label for="product-name">Название товара</label>
+            <input id="product-name" type="text" required placeholder="Например, Смеситель">
+          </div>
+
+          <div class="field">
+            <label for="product-category">Категория</label>
+            <select id="product-category" required></select>
+          </div>
+
+          <div class="field">
+            <label for="product-price">Цена (₽)</label>
+            <input id="product-price" type="number" min="0" step="1" required placeholder="2490">
+          </div>
+
+          <div class="field">
+            <label for="product-description">Описание</label>
+            <textarea id="product-description" placeholder="Короткое описание товара"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="product-photo">Фотография</label>
+            <input id="product-photo" type="file" accept="image/*">
+          </div>
+
+          <img id="photo-preview" class="preview" alt="Предпросмотр фото">
+
+          <div class="row" style="margin-top:12px;">
+            <button id="save-product" class="btn btn-brand" type="submit">Сохранить товар</button>
+            <button id="cancel-edit" class="btn btn-ghost" type="button">Очистить форму</button>
+          </div>
+        </form>
+
+        <div id="product-status" class="status"></div>
+
+        <div style="margin-top:18px;">
+          <h2 style="margin-bottom:10px;">Список товаров</h2>
+          <div id="products-grid" class="products-grid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = "prodom_admin_v1";
+      const FALLBACK_IMAGE =
+        "data:image/svg+xml;charset=UTF-8," +
+        encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="100%" height="100%" fill="#eef4ff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#5f78a4" font-family="Arial" font-size="28">Нет фото</text></svg>');
+
+      const state = loadState();
+
+      const categoryLimitInput = document.getElementById("category-limit");
+      const newCategoryInput = document.getElementById("new-category");
+      const addCategoryBtn = document.getElementById("add-category");
+      const categoryCounter = document.getElementById("category-counter");
+      const categoryList = document.getElementById("category-list");
+      const categoryStatus = document.getElementById("category-status");
+
+      const productForm = document.getElementById("product-form");
+      const productIdInput = document.getElementById("product-id");
+      const productNameInput = document.getElementById("product-name");
+      const productCategorySelect = document.getElementById("product-category");
+      const productPriceInput = document.getElementById("product-price");
+      const productDescriptionInput = document.getElementById("product-description");
+      const productPhotoInput = document.getElementById("product-photo");
+      const photoPreview = document.getElementById("photo-preview");
+      const cancelEditBtn = document.getElementById("cancel-edit");
+      const productStatus = document.getElementById("product-status");
+      const productsGrid = document.getElementById("products-grid");
+
+      const resetAllBtn = document.getElementById("reset-all");
+      const exportBtn = document.getElementById("export-data");
+
+      let pendingPhotoData = "";
+
+      init();
+
+      function init() {
+        bindEvents();
+        renderAll();
+      }
+
+      function bindEvents() {
+        categoryLimitInput.addEventListener("change", onCategoryLimitChange);
+        addCategoryBtn.addEventListener("click", onAddCategory);
+
+        productPhotoInput.addEventListener("change", onPhotoChange);
+        productForm.addEventListener("submit", onSaveProduct);
+        cancelEditBtn.addEventListener("click", resetProductForm);
+        productsGrid.addEventListener("click", onProductsGridClick);
+
+        resetAllBtn.addEventListener("click", onResetAll);
+        exportBtn.addEventListener("click", onExport);
+      }
+
+      function renderAll() {
+        renderCategories();
+        renderCategorySelect();
+        renderProducts();
+        photoPreview.src = FALLBACK_IMAGE;
+      }
+
+      function onCategoryLimitChange() {
+        const raw = Number(categoryLimitInput.value);
+        const nextLimit = clamp(Math.trunc(raw || 0), 1, 50);
+
+        if (nextLimit < state.categories.length) {
+          const dropCount = state.categories.length - nextLimit;
+          const confirmed = window.confirm(
+            `Лимит меньше текущего количества категорий. Удалить последние ${dropCount} категорий?`
+          );
+          if (!confirmed) {
+            categoryLimitInput.value = String(state.categoryLimit);
+            return;
+          }
+          state.categories = state.categories.slice(0, nextLimit);
+        }
+
+        state.categoryLimit = nextLimit;
+        saveState();
+        renderCategories();
+        renderCategorySelect();
+        showStatus(categoryStatus, "ok", "Лимит категорий обновлен.");
+      }
+
+      function onAddCategory() {
+        const title = normalizeCategoryTitle(newCategoryInput.value);
+        if (!title) {
+          showStatus(categoryStatus, "warn", "Введите название категории.");
+          return;
+        }
+
+        if (state.categories.length >= state.categoryLimit) {
+          showStatus(categoryStatus, "warn", "Достигнут лимит категорий.");
+          return;
+        }
+
+        if (state.categories.some((item) => item.toLowerCase() === title.toLowerCase())) {
+          showStatus(categoryStatus, "warn", "Такая категория уже есть.");
+          return;
+        }
+
+        state.categories.push(title);
+        newCategoryInput.value = "";
+        saveState();
+        renderCategories();
+        renderCategorySelect();
+        showStatus(categoryStatus, "ok", "Категория добавлена.");
+      }
+
+      function onRemoveCategory(categoryName) {
+        const usedByProducts = state.products.some((product) => product.category === categoryName);
+        if (usedByProducts) {
+          showStatus(categoryStatus, "warn", "Нельзя удалить категорию: она используется в товарах.");
+          return;
+        }
+
+        state.categories = state.categories.filter((name) => name !== categoryName);
+        saveState();
+        renderCategories();
+        renderCategorySelect();
+        showStatus(categoryStatus, "ok", "Категория удалена.");
+      }
+
+      async function onPhotoChange() {
+        const file = productPhotoInput.files && productPhotoInput.files[0];
+        if (!file) {
+          pendingPhotoData = "";
+          photoPreview.src = FALLBACK_IMAGE;
+          return;
+        }
+
+        try {
+          pendingPhotoData = await fileToDataUrl(file);
+          photoPreview.src = pendingPhotoData;
+        } catch {
+          pendingPhotoData = "";
+          photoPreview.src = FALLBACK_IMAGE;
+          showStatus(productStatus, "warn", "Не удалось прочитать изображение.");
+        }
+      }
+
+      async function onSaveProduct(event) {
+        event.preventDefault();
+
+        if (!state.categories.length) {
+          showStatus(productStatus, "warn", "Сначала добавьте хотя бы одну категорию.");
+          return;
+        }
+
+        const id = String(productIdInput.value || "").trim();
+        const name = String(productNameInput.value || "").trim();
+        const category = String(productCategorySelect.value || "").trim();
+        const price = Math.max(0, Number(productPriceInput.value || 0));
+        const description = String(productDescriptionInput.value || "").trim();
+
+        if (!name || !category || !Number.isFinite(price)) {
+          showStatus(productStatus, "warn", "Заполните обязательные поля товара.");
+          return;
+        }
+
+        let photo = pendingPhotoData;
+        if (!photo && id) {
+          const current = state.products.find((item) => item.id === id);
+          photo = current ? current.photo : "";
+        }
+
+        const product = {
+          id: id || makeId(),
+          name,
+          category,
+          price: Math.round(price),
+          description,
+          photo: photo || ""
+        };
+
+        const index = state.products.findIndex((item) => item.id === product.id);
+        if (index >= 0) {
+          state.products[index] = product;
+          showStatus(productStatus, "ok", "Товар обновлен.");
+        } else {
+          state.products.unshift(product);
+          showStatus(productStatus, "ok", "Товар добавлен.");
+        }
+
+        saveState();
+        renderProducts();
+        resetProductForm();
+      }
+
+      function onProductsGridClick(event) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+
+        const actionBtn = target.closest("button[data-action]");
+        if (!actionBtn) return;
+
+        const id = String(actionBtn.dataset.id || "");
+        const action = String(actionBtn.dataset.action || "");
+        if (!id || !action) return;
+
+        if (action === "edit") {
+          startEdit(id);
+        }
+
+        if (action === "delete") {
+          const ok = window.confirm("Удалить товар?");
+          if (!ok) return;
+          state.products = state.products.filter((item) => item.id !== id);
+          saveState();
+          renderProducts();
+          showStatus(productStatus, "ok", "Товар удален.");
+        }
+      }
+
+      function startEdit(id) {
+        const product = state.products.find((item) => item.id === id);
+        if (!product) return;
+
+        productIdInput.value = product.id;
+        productNameInput.value = product.name;
+        productCategorySelect.value = product.category;
+        productPriceInput.value = String(product.price);
+        productDescriptionInput.value = product.description || "";
+        pendingPhotoData = product.photo || "";
+        photoPreview.src = pendingPhotoData || FALLBACK_IMAGE;
+        productPhotoInput.value = "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function resetProductForm() {
+        productForm.reset();
+        productIdInput.value = "";
+        pendingPhotoData = "";
+        photoPreview.src = FALLBACK_IMAGE;
+      }
+
+      function renderCategories() {
+        categoryLimitInput.value = String(state.categoryLimit);
+        categoryCounter.textContent = `${state.categories.length} / ${state.categoryLimit}`;
+        addCategoryBtn.disabled = state.categories.length >= state.categoryLimit;
+
+        categoryList.innerHTML = "";
+        if (!state.categories.length) {
+          const empty = document.createElement("li");
+          empty.className = "empty";
+          empty.textContent = "Категории еще не добавлены.";
+          categoryList.appendChild(empty);
+          return;
+        }
+
+        state.categories.forEach((name) => {
+          const li = document.createElement("li");
+          li.className = "category-item";
+          li.innerHTML = `
+            <span>${escapeHtml(name)}</span>
+            <button class="btn btn-danger" type="button" data-remove-category="${escapeHtml(name)}">Удалить</button>
+          `;
+          categoryList.appendChild(li);
+        });
+
+        categoryList.querySelectorAll("button[data-remove-category]").forEach((btn) => {
+          btn.addEventListener("click", () => onRemoveCategory(btn.dataset.removeCategory || ""));
+        });
+      }
+
+      function renderCategorySelect() {
+        const prev = productCategorySelect.value;
+        productCategorySelect.innerHTML = "";
+
+        if (!state.categories.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "Сначала добавьте категорию";
+          productCategorySelect.appendChild(option);
+          return;
+        }
+
+        state.categories.forEach((name) => {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          productCategorySelect.appendChild(option);
+        });
+
+        if (state.categories.includes(prev)) {
+          productCategorySelect.value = prev;
+        }
+      }
+
+      function renderProducts() {
+        productsGrid.innerHTML = "";
+
+        if (!state.products.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Товаров пока нет. Добавьте первую карточку через форму выше.";
+          productsGrid.appendChild(empty);
+          return;
+        }
+
+        state.products.forEach((product) => {
+          const card = document.createElement("article");
+          card.className = "card";
+          card.innerHTML = `
+            <img class="thumb" src="${product.photo || FALLBACK_IMAGE}" alt="${escapeHtml(product.name)}">
+            <div class="meta">
+              <h3>${escapeHtml(product.name)}</h3>
+              <span class="chip">${escapeHtml(product.category)}</span>
+              <p class="price">${formatPrice(product.price)}</p>
+              <p>${escapeHtml(product.description || "Без описания")}</p>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-soft" type="button" data-action="edit" data-id="${product.id}">Редактировать</button>
+              <button class="btn btn-danger" type="button" data-action="delete" data-id="${product.id}">Удалить</button>
+            </div>
+          `;
+          productsGrid.appendChild(card);
+        });
+      }
+
+      function onResetAll() {
+        const ok = window.confirm("Удалить все категории и товары?");
+        if (!ok) return;
+
+        localStorage.removeItem(STORAGE_KEY);
+        const fresh = makeDefaultState();
+        state.categoryLimit = fresh.categoryLimit;
+        state.categories = fresh.categories;
+        state.products = fresh.products;
+        resetProductForm();
+        saveState();
+        renderAll();
+        showStatus(categoryStatus, "ok", "Данные сброшены.");
+        showStatus(productStatus, "ok", "Данные сброшены.");
+      }
+
+      function onExport() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "prodom-admin-data.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function showStatus(node, type, text) {
+        node.className = `status show ${type}`;
+        node.textContent = text;
+        window.clearTimeout(node._hideTimer);
+        node._hideTimer = window.setTimeout(() => {
+          node.className = "status";
+        }, 2600);
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function loadState() {
+        const fallback = makeDefaultState();
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return fallback;
+          const parsed = JSON.parse(raw);
+
+          const categories = Array.isArray(parsed.categories)
+            ? parsed.categories.map((value) => normalizeCategoryTitle(value)).filter(Boolean)
+            : fallback.categories;
+          const categoryLimit = clamp(Number(parsed.categoryLimit) || 0, 1, 50);
+          const products = Array.isArray(parsed.products)
+            ? parsed.products
+                .filter((item) => item && typeof item === "object")
+                .map((item) => ({
+                  id: String(item.id || makeId()),
+                  name: String(item.name || "").trim(),
+                  category: String(item.category || "").trim(),
+                  price: Math.max(0, Number(item.price) || 0),
+                  description: String(item.description || "").trim(),
+                  photo: String(item.photo || "")
+                }))
+                .filter((item) => item.name && item.category)
+            : fallback.products;
+
+          return {
+            categoryLimit,
+            categories: categories.slice(0, categoryLimit),
+            products
+          };
+        } catch {
+          return fallback;
+        }
+      }
+
+      function makeDefaultState() {
+        return {
+          categoryLimit: 5,
+          categories: ["Сантехника", "Электроприборы", "Стройматериалы", "Товары для дома", "Инструменты"],
+          products: []
+        };
+      }
+
+      function normalizeCategoryTitle(value) {
+        const text = String(value || "").trim().replace(/\s+/g, " ");
+        if (!text) return "";
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function makeId() {
+        return `p_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+      }
+
+      function formatPrice(price) {
+        return `${new Intl.NumberFormat("ru-RU").format(Math.round(Number(price) || 0))} ₽`;
+      }
+
+      function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

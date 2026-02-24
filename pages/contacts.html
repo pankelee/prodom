@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Контакты — PROdom</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/styles/contacts.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="container header-container">
+
+        <a href="../index.html" class="logo-wrapper">
+            <img src="../images/logo.svg" class="logo-img" alt="PROdom">
+            <span class="logo-text">PROdom</span>
+        </a>
+
+        <nav class="nav">
+            <a href="about.html">О нас</a>
+            <a href="../index.html">Главная</a>
+            <a href="catalogue.html">Каталог</a>
+            <a href="contacts.html" class="active">Контакты</a>
+            <a href="../admin/admin.html" class="admin-nav-link">Админ</a>
+        </nav>
+
+        <div class="header-actions">
+            <input type="text" placeholder="Поиск..." class="input">
+            <a href="favourites.html">
+                <img src="../images/like.svg" alt="Избранное">
+                <span class="fav-count">0</span>
+            </a>
+            <a href="cart.html">
+                <img src="../images/cart.svg" alt="Корзина">
+                <span class="cart-count">0</span>
+            </a>
+        </div>
+
+    </div>
+</header>
+
+<main class="container">
+
+<!-- HERO -->
+<section class="contacts-hero">
+    <h1>Контакты</h1>
+    <p class="contacts-lead">
+        Мы всегда готовы ответить на вопросы, помочь с выбором товара
+        и подсказать лучшие решения для вашего дома.
+    </p>
+</section>
+
+<!-- ОСНОВНАЯ ИНФОРМАЦИЯ -->
+<section class="contacts-grid">
+
+    <div class="contact-card">
+        <h3>Наш адрес</h3>
+        <p>
+            Сеть магазинов <strong>PROdom</strong><br>
+            г. Москва, ул. Комфортная, д. 10, корп. 2<br>
+            Вход со стороны парка, рядом с парковкой.
+        </p>
+    </div>
+
+    <div class="contact-card">
+        <h3>Режим работы</h3>
+        <p>
+            Ежедневно: 09:00–21:00<br>
+            Без выходных и праздников.
+        </p>
+    </div>
+
+    <div class="contact-card">
+        <h3>Телефон и email</h3>
+        <p>
+            Телефон: +7 (000) 000-00-00<br>
+            Email: info@prodom.ru
+        </p>
+        <p>
+            Мы быстро отвечаем на вопросы клиентов
+            и помогаем сделать заказ удобнее.
+        </p>
+    </div>
+
+</section>
+
+<!-- ФОРМА -->
+<section class="contact-form-section">
+
+    <h2 class="section-title">Напишите нам</h2>
+
+    <p class="form-description">
+        Мы можем помочь с любым вопросом:
+    </p>
+
+    <ul class="form-list">
+        <li>подберём товар и проконсультируем по email</li>
+        <li>подскажем по доставке, оплате, возврату и т.д.</li>
+        <li>примем заявку на сотрудничество</li>
+    </ul>
+
+    <form class="contact-form">
+
+        <div class="form-row">
+            <input type="text" placeholder="Ваше имя" class="input">
+            <input type="text" placeholder="Телефон или Email" class="input">
+        </div>
+
+        <select class="input">
+            <option>Выберите тему обращения</option>
+            <option>Вопрос по товару</option>
+            <option>Доставка</option>
+            <option>Сотрудничество</option>
+            <option>Другое</option>
+        </select>
+
+        <textarea placeholder="Напишите ваше сообщение" class="input textarea"></textarea>
+
+        <button class="btn-primary">Отправить сообщение</button>
+
+    </form>
+
+    <p class="response-time">
+        Мы ответим в течение 1 рабочего дня.
+    </p>
+
+</section>
+
+<!-- СОЦСЕТИ -->
+<section class="contacts-social">
+
+    <h2 class="section-title">Мы в соцсетях</h2>
+
+    <div class="social-cards">
+
+        <div class="social-card">
+            <h4>ВКонтакте</h4>
+            <p>vk.com/prodom</p>
+        </div>
+
+        <div class="social-card">
+            <h4>Telegram</h4>
+            <p>t.me/prodom</p>
+        </div>
+
+    </div>
+
+    <p class="social-note">
+        Подписывайтесь, чтобы быть в курсе акций и новинок.
+    </p>
+
+</section>
+
+</main>
+
+<footer class="footer">
+    <div class="container">
+
+        <div class="newsletter">
+            <div>
+                <h3>Готовы узнавать о новинках?</h3>
+                <input type="email" placeholder="Ваш Email" class="input">
+                <button class="btn-primary">Отправить</button>
+            </div>
+
+            <div>
+                <h4>Товары для дома</h4>
+                <p>Мы создаём комфорт и уют вместе с вами.</p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            © 2026 PROdom. Все права защищены.
+        </div>
+
+    </div>
+</footer>
+
+<script src="/script.js"></script>
+</body>
+</html>

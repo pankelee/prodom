@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Каталог — PROdom</title>
+<link rel="stylesheet" href="/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="container header-container">
+        <a href="../index.html" class="logo-wrapper">
+            <img src="../images/logo.svg" class="logo-img" alt="PROdom">
+            <span class="logo-text">PROdom</span>
+        </a>
+
+        <nav class="nav">
+            <a href="about.html">О нас</a>
+            <a href="../index.html">Главная</a>
+            <a href="catalogue.html" class="active">Каталог</a>
+            <a href="contacts.html">Контакты</a>
+            <a href="../admin/admin.html" class="admin-nav-link">Админ</a>
+        </nav>
+
+        <div class="header-actions">
+            <input type="text" placeholder="Поиск..." class="input">
+            <a href="favourites.html">
+                <img src="../images/like.svg" alt="Избранное">
+                <span class="fav-count">0</span>
+            </a>
+            <a href="cart.html">
+                <img src="../images/cart.svg" alt="Корзина">
+                <span class="cart-count">0</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+
+<section class="catalog-page-hero">
+    <h1>Каталог товаров</h1>
+    <p>Все необходимое для дома, ремонта и уюта в одном месте.</p>
+</section>
+
+<section class="catalog-layout">
+
+    <!-- ФИЛЬТРЫ -->
+    <aside class="catalog-filters">
+        <h3>Фильтры</h3>
+
+        <div class="filter-block">
+            <label for="catalogue-category-filter">Категория</label>
+            <select id="catalogue-category-filter" class="input">
+                <option value="">Все категории</option>
+                <option value="сантехника">Сантехника</option>
+                <option value="электроприборы">Электроприборы</option>
+                <option value="стройматериалы">Стройматериалы</option>
+                <option value="товары для дома">Товары для дома</option>
+                <option value="инструменты">Инструменты</option>
+            </select>
+        </div>
+
+        <div class="filter-block">
+            <label>Цена от</label>
+            <input type="number" class="input">
+        </div>
+
+        <div class="filter-block">
+            <label>Цена до</label>
+            <input type="number" class="input">
+        </div>
+
+        <button class="btn-primary filter-btn">Применить</button>
+    </aside>
+
+    <!-- ТОВАРЫ -->
+    <section class="catalog-products">
+
+        <div class="products-grid">
+
+            <div class="product-card" data-category="электроприборы">
+                <img src="../images/vacuumcleaner.jpg" alt="Пылесос">
+                <h4>Пылесос</h4>
+                <p class="product-category">Электроприборы</p>
+                <p class="price">8 990 ₽</p>
+                <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="товары для дома">
+                <img src="../images/mop.jpg" alt="Швабра">
+                <h4>Швабра</h4>
+                <p class="product-category">Товары для дома</p>
+                <p class="price">1 290 ₽</p>
+                <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="инструменты">
+                <img src="../images/pliers.jpg" alt="Плоскогубцы">
+                <h4>Плоскогубцы</h4>
+                <p class="product-category">Инструменты</p>
+                <p class="price">790 ₽</p>
+                <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="инструменты">
+                <img src="../images/screwdriver.jpg" alt="Отвертка">
+                <h4>Отвертка</h4>
+                <p class="product-category">Инструменты</p>
+                <p class="price">490 ₽</p>
+                <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="сантехника">
+                <img src="../images/faucet.jpg" alt="Смеситель">
+                <h4>Смеситель</h4>
+                <p class="product-category">Сантехника</p>
+                <p class="price">2 490 ₽</p>
+                <button class="btn-primary">В корзину</button>
+            </div>
+
+            <div class="product-card" data-category="стройматериалы">
+                <img src="../images/boards.jpg" alt="Доски">
+                <h4>Доски</h4>
+                <p class="product-category">Стройматериалы</p>
+                <p class="price">1 990 ₽</p>
+                <button class="btn-primary">В корзину</button>
+            </div>
+
+        </div>
+
+        <div class="catalog-controls">
+            <div class="catalog-page-size">
+                <label for="catalogue-page-size">Показывать:</label>
+                <select id="catalogue-page-size" class="input">
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                    <option value="16">16</option>
+                    <option value="24">24</option>
+                </select>
+            </div>
+            <div id="catalogue-pagination" class="pagination"></div>
+        </div>
+
+    </section>
+
+</section>
+
+</main>
+
+<footer class="footer">
+    <div class="container">
+
+        <div class="newsletter">
+            <div>
+                <h3>Готовы узнавать о новинках?</h3>
+                <input type="email" placeholder="Ваш Email" class="input">
+                <button class="btn-primary">Отправить</button>
+            </div>
+
+            <div>
+                <h4>Товары для дома</h4>
+                <p>Мы создаём комфорт и уют вместе с вами.</p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            © 2026 PROdom. Все права защищены.
+        </div>
+
+    </div>
+</footer>
+
+<script src="/script.js"></script>
+<script src="/scripts/catalogue.js"></script>
+</body>
+</html>

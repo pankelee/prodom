@@ -340,6 +340,27 @@
       gap: 4px;
     }
 
+    .feedback-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .feedback-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+      display: grid;
+      gap: 4px;
+    }
+
+    .feedback-item p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
     @media (max-width: 980px) {
       .layout {
         grid-template-columns: 1fr;
@@ -384,9 +405,22 @@
       </section>
 
       <section class="panel">
+        <div class="orders-head">
+          <h2 style="margin:0;">Обратная связь</h2>
+          <button id="clear-feedback" class="btn btn-danger" type="button">Очистить</button>
+        </div>
+        <p id="feedback-count" class="muted">0</p>
+        <div id="feedback-list" class="feedback-list"></div>
+      </section>
+
+      <section class="panel">
         <div class="products-head">
           <h2>Карточки товаров</h2>
-          <button id="export-data" class="btn btn-ghost" type="button">Экспорт JSON</button>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <input id="import-data-file" type="file" accept=".json,application/json" style="display:none;">
+            <button id="import-data" class="btn btn-soft" type="button">Импорт JSON</button>
+            <button id="export-data" class="btn btn-ghost" type="button">Экспорт JSON</button>
+          </div>
         </div>
 
         <form id="product-form" novalidate>
@@ -450,6 +484,7 @@
     (function () {
       const STORAGE_KEY = "prodom_admin_v1";
       const ORDER_STORAGE_KEY = "prodom_orders_v1";
+      const FEEDBACK_STORAGE_KEY = "prodom_feedback_v1";
       const FALLBACK_IMAGE =
         "data:image/svg+xml;charset=UTF-8," +
         encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="100%" height="100%" fill="#eef4ff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#5f78a4" font-family="Arial" font-size="28">Нет фото</text></svg>');
@@ -476,10 +511,15 @@
       const productsGrid = document.getElementById("products-grid");
 
       const resetAllBtn = document.getElementById("reset-all");
+      const importBtn = document.getElementById("import-data");
+      const importFileInput = document.getElementById("import-data-file");
       const exportBtn = document.getElementById("export-data");
       const ordersList = document.getElementById("orders-list");
       const ordersCount = document.getElementById("orders-count");
       const clearOrdersBtn = document.getElementById("clear-orders");
+      const feedbackList = document.getElementById("feedback-list");
+      const feedbackCount = document.getElementById("feedback-count");
+      const clearFeedbackBtn = document.getElementById("clear-feedback");
 
       let pendingPhotoData = "";
 
@@ -500,8 +540,11 @@
         productsGrid.addEventListener("click", onProductsGridClick);
 
         resetAllBtn.addEventListener("click", onResetAll);
+        importBtn.addEventListener("click", () => importFileInput.click());
+        importFileInput.addEventListener("change", onImportJson);
         exportBtn.addEventListener("click", onExport);
         clearOrdersBtn.addEventListener("click", onClearOrders);
+        clearFeedbackBtn.addEventListener("click", onClearFeedback);
       }
 
       function renderAll() {
@@ -509,6 +552,7 @@
         renderCategorySelect();
         renderProducts();
         renderOrders();
+        renderFeedback();
         photoPreview.src = FALLBACK_IMAGE;
       }
 
@@ -799,6 +843,36 @@
         URL.revokeObjectURL(url);
       }
 
+      async function onImportJson(event) {
+        const input = event.target;
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const payload = JSON.parse(text);
+          const normalized = normalizeImportedCatalog(payload);
+          if (!normalized.products.length) {
+            showStatus(productStatus, "warn", "JSON не содержит корректных товаров.");
+            return;
+          }
+
+          state.products = normalized.products;
+          state.categories = normalized.categories.length
+            ? normalized.categories.slice(0, 50)
+            : extractCategoriesFromProducts(normalized.products).slice(0, 50);
+          state.categoryLimit = clamp(Math.max(state.categoryLimit, state.categories.length), 1, 50);
+          saveState();
+          renderAll();
+          showStatus(productStatus, "ok", "JSON успешно загружен.");
+          showStatus(categoryStatus, "ok", "Категории обновлены из JSON.");
+        } catch {
+          showStatus(productStatus, "warn", "Не удалось прочитать JSON-файл.");
+        } finally {
+          input.value = "";
+        }
+      }
+
       function onClearOrders() {
         const ok = window.confirm("Удалить все оформленные заказы?");
         if (!ok) return;
@@ -806,6 +880,14 @@
         localStorage.removeItem(ORDER_STORAGE_KEY);
         renderOrders();
         showStatus(productStatus, "ok", "Список заказов очищен.");
+      }
+
+      function onClearFeedback() {
+        const ok = window.confirm("Удалить все сообщения обратной связи?");
+        if (!ok) return;
+        localStorage.removeItem(FEEDBACK_STORAGE_KEY);
+        renderFeedback();
+        showStatus(categoryStatus, "ok", "Сообщения обратной связи очищены.");
       }
 
       function renderOrders() {
@@ -862,6 +944,35 @@
         });
       }
 
+      function renderFeedback() {
+        if (!feedbackList || !feedbackCount) return;
+        const feedback = readFeedback();
+        feedbackCount.textContent = `${feedback.length}`;
+        feedbackList.innerHTML = "";
+
+        if (!feedback.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Сообщений пока нет.";
+          feedbackList.appendChild(empty);
+          return;
+        }
+
+        feedback.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "feedback-item";
+          const date = formatDate(item?.createdAt);
+          card.innerHTML = `
+            <p><strong>${escapeHtml(item?.topic || "Без темы")}</strong></p>
+            <p>Дата: ${escapeHtml(date)}</p>
+            <p>Имя: ${escapeHtml(item?.name || "—")}</p>
+            <p>Контакт: ${escapeHtml(item?.contact || "—")}</p>
+            <p>Сообщение: ${escapeHtml(item?.message || "—")}</p>
+          `;
+          feedbackList.appendChild(card);
+        });
+      }
+
       function showStatus(node, type, text) {
         node.className = `status show ${type}`;
         node.textContent = text;
@@ -883,6 +994,52 @@
         } catch {
           return [];
         }
+      }
+
+      function readFeedback() {
+        try {
+          const raw = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function normalizeImportedCatalog(payload) {
+        const categoriesRaw = Array.isArray(payload?.categories) ? payload.categories : [];
+        const productsRaw = Array.isArray(payload?.products)
+          ? payload.products
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        const categories = categoriesRaw
+          .map((item) => normalizeCategoryTitle(item))
+          .filter(Boolean);
+
+        const products = productsRaw
+          .filter((item) => item && typeof item === "object")
+          .map((item) => ({
+            id: sanitizeId(item.id || makeId()),
+            name: sanitizePlainText(item.name || "", 120),
+            category: normalizeCategoryTitle(item.category || ""),
+            price: Math.max(0, Number(item.price) || 0),
+            description: sanitizePlainText(item.description || "", 400),
+            photo: String(item.photo || "")
+          }))
+          .filter((item) => item.name && item.category);
+
+        return { categories, products };
+      }
+
+      function extractCategoriesFromProducts(products) {
+        const set = new Set();
+        products.forEach((item) => {
+          const category = normalizeCategoryTitle(item?.category || "");
+          if (category) set.add(category);
+        });
+        return Array.from(set);
       }
 
       function loadState() {
@@ -944,7 +1101,12 @@
       }
 
       function sanitizeId(value) {
-        const text = String(value || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        const text = String(value || "")
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9\u0400-\u04FF_:-]/gi, "")
+          .slice(0, 120);
         return text || makeId();
       }
 

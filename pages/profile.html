@@ -73,6 +73,16 @@
                 </div>
 
                 <button id="profile-save" class="btn-primary order-submit" type="button">Сохранить профиль</button>
+                <div class="profile-shortcuts">
+                    <a href="favourites.html" class="profile-shortcut-btn">
+                        <span>В избранное</span>
+                        <span id="profile-favourites-count" class="profile-shortcut-badge">0</span>
+                    </a>
+                    <a href="cart.html" class="profile-shortcut-btn">
+                        <span>В корзину</span>
+                        <span id="profile-cart-count" class="profile-shortcut-badge">0</span>
+                    </a>
+                </div>
             </aside>
 
             <section class="profile-history">
@@ -123,6 +133,8 @@
   const saveBtn = document.getElementById("profile-save");
   const ordersList = document.getElementById("profile-orders-list");
   const emptyNode = document.getElementById("profile-orders-empty");
+  const favouritesCountNode = document.getElementById("profile-favourites-count");
+  const cartCountNode = document.getElementById("profile-cart-count");
 
   let avatarData = "";
 
@@ -135,11 +147,21 @@
     phoneInput.value = String(profile.phone || "");
     avatarData = String(profile.avatar || "");
     avatarNode.src = avatarData || "../images/logo.svg";
+    phoneInput.value = formatPhoneFromInput(phoneInput.value || "");
 
     renderOrders();
+    updateShortcutCounts();
 
     avatarInput?.addEventListener("change", onAvatarChange);
     saveBtn?.addEventListener("click", onSaveProfile);
+    phoneInput?.addEventListener("input", onPhoneInput);
+    window.addEventListener("storage", (event) => {
+      if (!event.key || event.key === "cart" || event.key === "favourites") {
+        updateShortcutCounts();
+      }
+    });
+    document.addEventListener("cart:updated", updateShortcutCounts);
+    document.addEventListener("favourites:updated", updateShortcutCounts);
   }
 
   async function onAvatarChange() {
@@ -156,10 +178,17 @@
   }
 
   function onSaveProfile() {
+    const formattedPhone = formatPhoneFromInput(phoneInput.value || "");
+    phoneInput.value = formattedPhone;
+    if (formattedPhone.length && formattedPhone.length !== 18) {
+      alert("Введите телефон полностью в формате +7 (999) 123 45 56.");
+      return;
+    }
+
     const profile = {
       fullName: sanitizePlainText(fullNameInput.value || "", 120),
       email: sanitizePlainText(emailInput.value || "", 120),
-      phone: sanitizePhone(phoneInput.value || ""),
+      phone: sanitizePhone(formattedPhone || ""),
       avatar: avatarData || ""
     };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
@@ -262,7 +291,65 @@
   }
 
   function sanitizePhone(value) {
-    return String(value || "").replace(/[^\d+\-\s()]/g, "").trim().slice(0, 30);
+    return formatPhoneFromInput(value || "");
+  }
+
+  function onPhoneInput() {
+    phoneInput.value = formatPhoneFromInput(phoneInput.value || "");
+  }
+
+  function formatPhoneFromInput(value) {
+    const digitsRaw = String(value || "").replace(/\D/g, "");
+    let digits = digitsRaw;
+    if (!digits) return "+7";
+
+    if (digits.startsWith("8")) {
+      digits = `7${digits.slice(1)}`;
+    }
+    if (!digits.startsWith("7")) {
+      digits = `7${digits}`;
+    }
+    digits = digits.slice(0, 11);
+
+    const body = digits.slice(1);
+    let out = "+7";
+    if (!body.length) return out;
+    out += ` (${body.slice(0, 3)}`;
+    if (body.length >= 3) out += ")";
+    if (body.length > 3) out += ` ${body.slice(3, 6)}`;
+    if (body.length > 6) out += ` ${body.slice(6, 8)}`;
+    if (body.length > 8) out += ` ${body.slice(8, 10)}`;
+    return out;
+  }
+
+  function updateShortcutCounts() {
+    if (favouritesCountNode) {
+      favouritesCountNode.textContent = String(readFavouritesCount());
+    }
+    if (cartCountNode) {
+      cartCountNode.textContent = String(readCartCount());
+    }
+  }
+
+  function readFavouritesCount() {
+    try {
+      const raw = localStorage.getItem("favourites");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function readCartCount() {
+    try {
+      const raw = localStorage.getItem("cart");
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return 0;
+      return parsed.reduce((sum, item) => sum + Math.max(0, Number(item?.quantity) || 0), 0);
+    } catch {
+      return 0;
+    }
   }
 
   function sanitizePlainText(value, maxLength) {

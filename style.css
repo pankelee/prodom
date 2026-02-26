@@ -25,6 +25,9 @@ a{
 .header {
 background: #081F5C;
 padding: 12px 0;
+position: sticky;
+top: 0;
+z-index: 1000;
 
 }
 
@@ -363,6 +366,31 @@ margin: 10px 0;
   cursor: not-allowed;
 }
 
+.catalog-category-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.catalog-category-btn {
+  border: 1px solid #d4dfef;
+  background: #ffffff;
+  color: #081f5c;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.catalog-category-btn:hover {
+  background: #e8f0ff;
+}
+
+.catalog-category-btn.is-active {
+  background: #334eac;
+  border-color: #334eac;
+  color: #fff;
+}
+
 /* FOOTER */
 
 .input{
@@ -686,6 +714,38 @@ text-align: center;
 .profile-order-meta {
   margin: 4px 0 0;
   color: #4d5f88;
+}
+
+.profile-shortcuts {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.profile-shortcut-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #d4dfef;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #081f5c;
+  text-decoration: none;
+}
+
+.profile-shortcut-badge {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #334eac;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 1024px) {

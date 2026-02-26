@@ -2,12 +2,16 @@
   const CART_STORAGE_KEY = "cart";
   const FAV_STORAGE_KEY = "favourites";
   const ADMIN_STORAGE_KEY = "prodom_admin_v1";
+  const ORDER_STORAGE_KEY = "prodom_orders_v1";
+  const FEEDBACK_STORAGE_KEY = "prodom_feedback_v1";
+  const DEFAULT_JSON_PATH = "data/products.json";
 
   document.addEventListener("DOMContentLoaded", () => {
     initSmoothScroll();
     initHeaderScroll();
     initSearchFocus();
     initNewsletterForm();
+    initContactsForm();
     initAdminIntegration();
     initCardHoverEffects();
     initProductCards();
@@ -77,6 +81,9 @@
       const emailInput = block.querySelector('input[type="email"]');
       const button = block.querySelector(".btn-primary");
       if (!emailInput || !button) return;
+      emailInput.required = true;
+      emailInput.setAttribute("maxlength", "120");
+      emailInput.setAttribute("inputmode", "email");
 
       button.addEventListener("click", (event) => {
         event.preventDefault();
@@ -92,24 +99,82 @@
           return;
         }
 
+        submitFeedback({
+          type: "newsletter",
+          name: "Подписка",
+          contact: email,
+          topic: "Подписка на новости",
+          message: `Новая заявка на подписку: ${email}`
+        });
         emailInput.value = "";
         showNotification("Спасибо за подписку", "success");
       });
     });
   }
 
-  function initAdminIntegration() {
-    const adminState = readAdminCatalogSafe();
-    if (!adminState.categories.length && !adminState.products.length) return;
+  function initContactsForm() {
+    const form = document.getElementById("contact-form");
+    if (!form) return;
 
-    hydrateHomeCategories(adminState.categories);
-    hydrateHomePopular(adminState.products);
+    const nameInput = document.getElementById("contact-name");
+    const contactInput = document.getElementById("contact-contact");
+    const topicInput = document.getElementById("contact-topic");
+    const messageInput = document.getElementById("contact-message");
+    if (!nameInput || !contactInput || !topicInput || !messageInput) return;
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = sanitizePlainText(nameInput.value || "", 80);
+      const contact = sanitizePlainText(contactInput.value || "", 120);
+      const topic = sanitizePlainText(topicInput.value || "", 80);
+      const message = sanitizePlainText(messageInput.value || "", 1200);
+
+      const contactLooksValid = isValidEmail(contact) || isValidPhone(contact);
+      if (!name || !contact || !topic || !message) {
+        showNotification("Заполните все обязательные поля.", "error");
+        return;
+      }
+      if (!contactLooksValid) {
+        showNotification("Введите корректный email или телефон.", "error");
+        return;
+      }
+      if (message.length < 10) {
+        showNotification("Сообщение должно быть не короче 10 символов.", "error");
+        return;
+      }
+
+      submitFeedback({
+        type: "contacts",
+        name,
+        contact,
+        topic,
+        message
+      });
+
+      form.reset();
+      showNotification("Сообщение отправлено.", "success");
+    });
+  }
+
+  function initAdminIntegration() {
+    const hasHomeBlocks = document.querySelector(".catalog .catalog-grid") || document.querySelector(".popular .products-grid");
+    if (!hasHomeBlocks) return;
+
+    const renderHomeFromData = async () => {
+      const catalog = await loadCatalogData();
+      if (catalog.categories.length) {
+        hydrateHomeCategories(catalog.categories);
+      }
+      if (catalog.products.length) {
+        hydrateHomePopular(catalog.products);
+      }
+    };
+
+    renderHomeFromData();
 
     window.addEventListener("storage", (event) => {
-      if (!event.key || event.key === ADMIN_STORAGE_KEY) {
-        const nextState = readAdminCatalogSafe();
-        hydrateHomeCategories(nextState.categories);
-        hydrateHomePopular(nextState.products);
+      if (!event.key || event.key === ADMIN_STORAGE_KEY || event.key === ORDER_STORAGE_KEY) {
+        renderHomeFromData();
       }
     });
   }
@@ -147,17 +212,17 @@
     const grid = document.querySelector(".popular .products-grid");
     if (!grid || !products.length) return;
 
-    const items = products.slice(0, 4);
+    const items = selectPopularProducts(products, 4);
     grid.innerHTML = "";
     const fragment = document.createDocumentFragment();
 
     items.forEach((product, index) => {
-      const name = String(product?.name || `Товар ${index + 1}`).trim();
-      const description = String(product?.description || "").trim();
-      const category = String(product?.category || "").trim();
+      const name = sanitizePlainText(product?.name || `Товар ${index + 1}`, 120);
+      const description = sanitizePlainText(product?.description || "", 400);
+      const category = sanitizePlainText(product?.category || "", 80);
       const price = Math.max(0, Number(product?.price) || 0);
       const image = resolveImageForCurrentPage(product?.photo);
-      const id = String(product?.id || slugify(name) || `product-${index + 1}`);
+      const id = sanitizeId(product?.id || slugify(name) || `product-${index + 1}`);
 
       const card = document.createElement("div");
       card.className = "product-card";
@@ -177,6 +242,65 @@
 
     grid.appendChild(fragment);
     document.dispatchEvent(new Event("products:updated"));
+  }
+
+  function readOrdersSafe() {
+    try {
+      const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function selectPopularProducts(products, limit) {
+    const safeLimit = Math.max(1, Number(limit) || 4);
+    const orders = readOrdersSafe();
+    if (!orders.length) return products.slice(0, safeLimit);
+
+    const quantityById = new Map();
+    const quantityByName = new Map();
+
+    orders.forEach((order) => {
+      const items = Array.isArray(order?.items) ? order.items : [];
+      items.forEach((item) => {
+        const qty = Math.max(0, Number(item?.quantity) || 0);
+        if (!qty) return;
+
+        const itemId = sanitizeId(item?.id || "");
+        const itemName = sanitizePlainText(item?.name || "", 120).toLowerCase();
+
+        if (itemId) {
+          quantityById.set(itemId, (quantityById.get(itemId) || 0) + qty);
+        }
+        if (itemName) {
+          quantityByName.set(itemName, (quantityByName.get(itemName) || 0) + qty);
+        }
+      });
+    });
+
+    const ranked = products
+      .map((product, index) => {
+        const id = sanitizeId(product?.id || "");
+        const name = sanitizePlainText(product?.name || "", 120);
+        const byId = quantityById.get(id) || 0;
+        const byName = quantityByName.get(name.toLowerCase()) || 0;
+        return {
+          product,
+          index,
+          quantity: Math.max(byId, byName),
+          name
+        };
+      })
+      .sort((a, b) => {
+        if (b.quantity !== a.quantity) return b.quantity - a.quantity;
+        const byName = a.name.localeCompare(b.name, "ru", { sensitivity: "base" });
+        if (byName !== 0) return byName;
+        return a.index - b.index;
+      });
+
+    return ranked.slice(0, safeLimit).map((entry) => entry.product);
   }
 
   function readAdminCatalogSafe() {
@@ -205,6 +329,91 @@
     }
   }
 
+  function getProductsJsonPath() {
+    return window.location.pathname.includes("/pages/") ? `../${DEFAULT_JSON_PATH}` : DEFAULT_JSON_PATH;
+  }
+
+  async function readJsonCatalogSafe() {
+    try {
+      const response = await fetch(getProductsJsonPath(), { cache: "no-store" });
+      if (!response.ok) return { categories: [], products: [] };
+      const payload = await response.json();
+      return normalizeCatalogPayload(payload);
+    } catch {
+      return { categories: [], products: [] };
+    }
+  }
+
+  function normalizeCatalogPayload(payload) {
+    const categoriesRaw = Array.isArray(payload?.categories) ? payload.categories : [];
+    const productsRaw = Array.isArray(payload?.products)
+      ? payload.products
+      : Array.isArray(payload)
+        ? payload
+        : [];
+
+    const categories = categoriesRaw.map((item) => sanitizePlainText(item || "", 80)).filter(Boolean);
+    const products = productsRaw
+      .map((item) => ({
+        id: sanitizeId(item?.id || ""),
+        name: sanitizePlainText(item?.name || "", 120),
+        category: sanitizePlainText(item?.category || "", 80),
+        price: Math.max(0, Number(item?.price) || 0),
+        description: sanitizePlainText(item?.description || "", 400),
+        photo: String(item?.photo || "").trim()
+      }))
+      .filter((item) => item.name);
+
+    const normalizedCategories = categories.length ? categories : extractCategoriesFromProducts(products);
+    return { categories: normalizedCategories, products };
+  }
+
+  function mergeCatalogData(baseCatalog, adminCatalog) {
+    const base = baseCatalog || { categories: [], products: [] };
+    const admin = adminCatalog || { categories: [], products: [] };
+    const byId = new Map();
+
+    base.products.forEach((product) => {
+      byId.set(product.id, product);
+    });
+    admin.products.forEach((product) => {
+      byId.set(product.id, product);
+    });
+
+    const products = Array.from(byId.values());
+    const categorySet = new Set();
+    [...admin.categories, ...base.categories].forEach((category) => {
+      const clean = sanitizePlainText(category || "", 80);
+      if (clean) categorySet.add(clean);
+    });
+
+    if (!categorySet.size) {
+      extractCategoriesFromProducts(products).forEach((category) => categorySet.add(category));
+    }
+
+    return {
+      categories: Array.from(categorySet),
+      products
+    };
+  }
+
+  async function loadCatalogData() {
+    const [jsonCatalog, adminCatalog] = await Promise.all([
+      readJsonCatalogSafe(),
+      Promise.resolve(readAdminCatalogSafe())
+    ]);
+    return mergeCatalogData(jsonCatalog, adminCatalog);
+  }
+
+  function extractCategoriesFromProducts(products) {
+    const set = new Set();
+    (Array.isArray(products) ? products : []).forEach((item) => {
+      const category = sanitizePlainText(item?.category || "", 80);
+      if (category) set.add(category);
+    });
+    return Array.from(set);
+  }
+
   function initProductCards() {
     const cards = Array.from(document.querySelectorAll(".product-card"));
     if (!cards.length) return;
@@ -220,7 +429,7 @@
         addBtn.dataset.bound = "1";
         addBtn.addEventListener("click", (event) => {
           event.preventDefault();
-          addProductToCart(product, 1);
+          addProductToCart(card.__product || product, 1);
         });
       }
 
@@ -228,7 +437,7 @@
         favBtn.dataset.bound = "1";
         favBtn.addEventListener("click", (event) => {
           event.preventDefault();
-          toggleFavourite(product);
+          toggleFavourite(card.__product || product);
         });
       }
 
@@ -241,17 +450,18 @@
           if (!button) return;
 
           const action = String(button.dataset.action || "").trim();
-          const currentQty = getCartItemQuantity(product.id);
+          const currentProduct = card.__product || product;
+          const currentQty = getCartItemQuantity(currentProduct.id);
 
           if (action === "minus") {
             const nextQty = currentQty - 1;
-            updateCartItemQuantity(product, nextQty);
+            updateCartItemQuantity(currentProduct, nextQty);
             return;
           }
 
           if (action === "plus") {
             const nextQty = Math.min(99, currentQty + 1);
-            updateCartItemQuantity(product, nextQty);
+            updateCartItemQuantity(currentProduct, nextQty);
           }
         });
       }
@@ -401,8 +611,13 @@
   }
 
   function sanitizeId(value) {
-    const normalized = String(value || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    return normalized || `p_${Date.now()}`;
+    const normalized = String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9а-яё_:-]/gi, "")
+      .slice(0, 120);
+    return normalized || `p_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
   }
 
   function normalizeImagePath(value) {
@@ -441,6 +656,35 @@
 
   function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function isValidPhone(phone) {
+    const digits = String(phone || "").replace(/\D/g, "");
+    return digits.length >= 10 && digits.length <= 11;
+  }
+
+  function readFeedbackSafe() {
+    try {
+      const raw = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function submitFeedback(payload) {
+    const items = readFeedbackSafe();
+    items.unshift({
+      id: `fb_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+      createdAt: new Date().toISOString(),
+      type: sanitizePlainText(payload?.type || "feedback", 40),
+      name: sanitizePlainText(payload?.name || "", 80),
+      contact: sanitizePlainText(payload?.contact || "", 120),
+      topic: sanitizePlainText(payload?.topic || "", 80),
+      message: sanitizePlainText(payload?.message || "", 1200)
+    });
+    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(items));
   }
 
   function initCartBadge() {
@@ -728,6 +972,10 @@
     isFavourite,
     normalizeImagePath,
     readAdminCatalogSafe,
+    readJsonCatalogSafe,
+    loadCatalogData,
+    readFeedbackSafe,
+    submitFeedback,
     resolveImageForCurrentPage,
     updateCartItemQuantity,
     getCartItemQuantity,

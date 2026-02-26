@@ -6,11 +6,10 @@
   if (!grid) return;
 
   const filterPanel = document.querySelector(".catalog-filters");
-  const categorySelect = document.getElementById("catalogue-category-filter");
+  const categoryFilterNode = document.getElementById("catalogue-category-filter");
   const priceInputs = filterPanel ? Array.from(filterPanel.querySelectorAll('input[type="number"]')) : [];
   const minPriceInput = priceInputs[0] || null;
   const maxPriceInput = priceInputs[1] || null;
-  const applyButton = filterPanel?.querySelector(".filter-btn") || null;
   const searchInput = document.querySelector(".header-actions .input");
   const pageSizeSelect = document.getElementById("catalogue-page-size");
   const paginationNode = document.getElementById("catalogue-pagination");
@@ -20,27 +19,30 @@
   let currentPage = 1;
   let pageSize = Number(pageSizeSelect?.value) || 8;
   let filtered = [];
+  let selectedCategory = "";
 
   bootstrap();
 
-  function bootstrap() {
-    renderCatalogueFromSources();
+  async function bootstrap() {
+    await renderCatalogueFromSources();
     bindEvents();
     applyCategoryFromUrl();
     applyFilters();
   }
 
   function bindEvents() {
-    applyButton?.addEventListener("click", (event) => {
-      event.preventDefault();
-      applyFilters();
-    });
-
     minPriceInput?.addEventListener("input", applyFilters);
     maxPriceInput?.addEventListener("input", applyFilters);
     searchInput?.addEventListener("input", applyFilters);
-    categorySelect?.addEventListener("change", () => {
+
+    categoryFilterNode?.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest("button[data-category]");
+      if (!button) return;
+      selectedCategory = normalizeCategory(button.dataset.category || "");
       currentPage = 1;
+      highlightCategoryButton();
       applyFilters();
     });
 
@@ -52,30 +54,31 @@
 
     window.addEventListener("storage", (event) => {
       if (!event.key || event.key === "prodom_admin_v1") {
-        renderCatalogueFromSources();
-        currentPage = 1;
-        applyCategoryFromUrl();
-        applyFilters();
+        renderCatalogueFromSources().then(() => {
+          currentPage = 1;
+          applyCategoryFromUrl();
+          applyFilters();
+        });
       }
     });
   }
 
-  function renderCatalogueFromSources() {
-    const admin = window.PROdom?.readAdminCatalogSafe?.();
-    const products = Array.isArray(admin?.products) ? admin.products : [];
+  async function renderCatalogueFromSources() {
+    const merged = await window.PROdom?.loadCatalogData?.();
+    const products = Array.isArray(merged?.products) ? merged.products : [];
 
     if (!products.length) {
       cards = Array.from(grid.querySelectorAll(".product-card"));
-      syncCategoryOptionsFromCards();
+      renderCategoryButtons(extractCategoriesFromCards(cards));
       document.dispatchEvent(new Event("products:updated"));
       return;
     }
 
-    const categories = Array.isArray(admin?.categories) && admin.categories.length
-      ? admin.categories
+    const categories = Array.isArray(merged?.categories) && merged.categories.length
+      ? merged.categories
       : extractCategoriesFromProducts(products);
 
-    renderCategoryOptions(categories);
+    renderCategoryButtons(categories);
     renderCards(products);
     cards = Array.from(grid.querySelectorAll(".product-card"));
     document.dispatchEvent(new Event("products:updated"));
@@ -90,7 +93,7 @@
       const description = String(product?.description || "").trim();
       const category = String(product?.category || "").trim();
       const price = Math.max(0, Number(product?.price) || 0);
-      const id = String(product?.id || `admin-product-${index + 1}`);
+      const id = String(product?.id || `product-${index + 1}`);
       const image = normalizeImageForCataloguePage(product?.photo);
 
       const card = document.createElement("div");
@@ -111,38 +114,42 @@
     grid.appendChild(fragment);
   }
 
-  function syncCategoryOptionsFromCards() {
-    if (!categorySelect) return;
-    const values = new Set();
-    cards.forEach((card) => {
-      const value = normalizeCategory(card.dataset.category || card.querySelector(".product-category")?.textContent || "");
-      if (value) values.add(value);
+  function renderCategoryButtons(categories) {
+    if (!categoryFilterNode) return;
+    const normalizedSelected = normalizeCategory(selectedCategory || "");
+    categoryFilterNode.innerHTML = "";
+
+    const buttons = [{ label: "Все категории", value: "" }].concat(
+      categories.map((category) => ({
+        label: String(category || "").trim(),
+        value: normalizeCategory(category)
+      }))
+    );
+
+    const fragment = document.createDocumentFragment();
+    buttons.forEach((item) => {
+      if (!item.label && item.value) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "catalog-category-btn";
+      button.dataset.category = item.value;
+      button.textContent = item.label || "Категория";
+      if (item.value === normalizedSelected) {
+        button.classList.add("is-active");
+      }
+      fragment.appendChild(button);
     });
-    const titles = Array.from(values).map(capitalize);
-    renderCategoryOptions(titles);
+
+    categoryFilterNode.appendChild(fragment);
   }
 
-  function renderCategoryOptions(categories) {
-    if (!categorySelect) return;
-
-    const currentValue = normalizeCategory(categorySelect.value || "");
-    categorySelect.innerHTML = "";
-
-    const allOption = document.createElement("option");
-    allOption.value = "";
-    allOption.textContent = "Все категории";
-    categorySelect.appendChild(allOption);
-
-    categories.forEach((category) => {
-      const clean = String(category || "").trim();
-      if (!clean) return;
-      const option = document.createElement("option");
-      option.value = normalizeCategory(clean);
-      option.textContent = clean;
-      categorySelect.appendChild(option);
+  function highlightCategoryButton() {
+    if (!categoryFilterNode) return;
+    const normalizedSelected = normalizeCategory(selectedCategory || "");
+    categoryFilterNode.querySelectorAll(".catalog-category-btn").forEach((button) => {
+      const value = normalizeCategory(button.dataset.category || "");
+      button.classList.toggle("is-active", value === normalizedSelected);
     });
-
-    if (currentValue) categorySelect.value = currentValue;
   }
 
   function applyFilters() {
@@ -150,15 +157,15 @@
     const maxPrice = maxPriceInput ? Number(maxPriceInput.value) : 0;
     const hasMin = Number.isFinite(minPrice) && minPrice > 0;
     const hasMax = Number.isFinite(maxPrice) && maxPrice > 0;
-    const selectedCategory = normalizeCategory(categorySelect?.value || "");
     const term = String(searchInput?.value || "").trim().toLowerCase();
+    const currentCategory = normalizeCategory(selectedCategory);
 
     filtered = cards.filter((card) => {
       const price = readPrice(card.querySelector(".price")?.textContent || "");
       const title = String(card.querySelector("h4")?.textContent || "").toLowerCase();
       const category = normalizeCategory(card.dataset.category || card.querySelector(".product-category")?.textContent || "");
 
-      if (selectedCategory && category !== selectedCategory) return false;
+      if (currentCategory && category !== currentCategory) return false;
       if (hasMin && price < minPrice) return false;
       if (hasMax && price > maxPrice) return false;
       if (term && !title.includes(term)) return false;
@@ -168,7 +175,6 @@
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
     if (!filtered.length) currentPage = 1;
-
     render();
   }
 
@@ -189,7 +195,6 @@
     filtered.slice(start, end).forEach((card) => {
       card.style.display = "";
     });
-
     renderPagination();
   }
 
@@ -210,7 +215,6 @@
     fragment.appendChild(
       createPaginationButton(">", Math.min(totalPages, currentPage + 1), currentPage === totalPages, false)
     );
-
     paginationNode.appendChild(fragment);
   }
 
@@ -233,23 +237,31 @@
   }
 
   function applyCategoryFromUrl() {
-    if (!categorySelect) return;
-
     const params = new URLSearchParams(window.location.search);
     const categoryFromUrl = normalizeCategory(params.get("category") || "");
-    if (!categoryFromUrl) return;
-
-    const options = Array.from(categorySelect.options);
-    const matched = options.find((option) => normalizeCategory(option.value) === categoryFromUrl);
-    if (matched) {
-      categorySelect.value = matched.value;
+    if (!categoryFromUrl) {
+      selectedCategory = "";
+      highlightCategoryButton();
+      return;
     }
+
+    selectedCategory = categoryFromUrl;
+    highlightCategoryButton();
   }
 
   function extractCategoriesFromProducts(products) {
     const set = new Set();
     products.forEach((item) => {
       const category = String(item?.category || "").trim();
+      if (category) set.add(category);
+    });
+    return Array.from(set);
+  }
+
+  function extractCategoriesFromCards(cardNodes) {
+    const set = new Set();
+    cardNodes.forEach((card) => {
+      const category = String(card?.dataset?.category || card.querySelector(".product-category")?.textContent || "").trim();
       if (category) set.add(category);
     });
     return Array.from(set);
@@ -274,7 +286,6 @@
     node.style.display = "none";
     node.style.marginTop = "12px";
     node.style.color = "#444";
-
     parent?.appendChild(node);
     return node;
   }
@@ -287,12 +298,6 @@
 
   function normalizeCategory(value) {
     return String(value || "").trim().toLowerCase();
-  }
-
-  function capitalize(value) {
-    const text = String(value || "").trim();
-    if (!text) return "";
-    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
   function formatPrice(value) {

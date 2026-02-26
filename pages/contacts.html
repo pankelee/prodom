@@ -102,24 +102,24 @@
         <li>примем заявку на сотрудничество</li>
     </ul>
 
-    <form class="contact-form">
+    <form class="contact-form" id="contact-form" novalidate>
 
         <div class="form-row">
-            <input type="text" placeholder="Ваше имя" class="input">
-            <input type="text" placeholder="Телефон или Email" class="input">
+            <input id="contact-name" type="text" placeholder="Ваше имя" class="input" required minlength="2" maxlength="80">
+            <input id="contact-contact" type="text" placeholder="Телефон или Email" class="input" required>
         </div>
 
-        <select class="input">
-            <option>Выберите тему обращения</option>
-            <option>Вопрос по товару</option>
-            <option>Доставка</option>
-            <option>Сотрудничество</option>
-            <option>Другое</option>
+        <select id="contact-topic" class="input" required>
+            <option value="">Выберите тему обращения</option>
+            <option value="Вопрос по товару">Вопрос по товару</option>
+            <option value="Доставка">Доставка</option>
+            <option value="Сотрудничество">Сотрудничество</option>
+            <option value="Другое">Другое</option>
         </select>
 
-        <textarea placeholder="Напишите ваше сообщение" class="input textarea"></textarea>
+        <textarea id="contact-message" placeholder="Напишите ваше сообщение" class="input textarea" required minlength="10" maxlength="1200"></textarea>
 
-        <button class="btn-primary">Отправить сообщение</button>
+        <button class="btn-primary" type="submit">Отправить сообщение</button>
 
     </form>
 

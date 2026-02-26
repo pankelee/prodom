@@ -1,0 +1,59 @@
+{
+  "categories": [
+    "Сантехника",
+    "Электроприборы",
+    "Строительные материалы",
+    "Товары для дома",
+    "Инструменты"
+  ],
+  "products": [
+    {
+      "id": "vacuum-cleaner-001",
+      "name": "Пылесос",
+      "category": "Электроприборы",
+      "price": 8990,
+      "description": "Компактный и мощный пылесос для сухой уборки дома.",
+      "photo": "images/vacuumcleaner.jpg"
+    },
+    {
+      "id": "mop-001",
+      "name": "Швабра",
+      "category": "Товары для дома",
+      "price": 1290,
+      "description": "Удобная швабра с насадкой из микрофибры.",
+      "photo": "images/mop.jpg"
+    },
+    {
+      "id": "pliers-001",
+      "name": "Плоскогубцы",
+      "category": "Инструменты",
+      "price": 790,
+      "description": "Надежные плоскогубцы для захвата и фиксации деталей.",
+      "photo": "images/pliers.jpg"
+    },
+    {
+      "id": "screwdriver-001",
+      "name": "Отвертка",
+      "category": "Инструменты",
+      "price": 490,
+      "description": "Универсальная отвертка для домашнего ремонта.",
+      "photo": "images/screwdriver.jpg"
+    },
+    {
+      "id": "faucet-001",
+      "name": "Смеситель",
+      "category": "Сантехника",
+      "price": 2490,
+      "description": "Качественный смеситель для кухни и ванной.",
+      "photo": "images/faucet.jpg"
+    },
+    {
+      "id": "boards-001",
+      "name": "Доски",
+      "category": "Строительные материалы",
+      "price": 1990,
+      "description": "Строительные доски для ремонта и отделки.",
+      "photo": "images/boards.jpg"
+    }
+  ]
+}

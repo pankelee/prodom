@@ -173,6 +173,7 @@
   function normalizeImage(src) {
     const value = String(src || "").trim();
     if (!value) return "../images/logo.svg";
+    if (value.startsWith("data:")) return value;
     if (value.startsWith("http")) return value;
     if (value.startsWith("/")) return `..${value}`;
     if (value.startsWith("../") || value.startsWith("./")) return value;

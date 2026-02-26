@@ -280,8 +280,9 @@
   function normalizeImagePath(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
-    if (raw.startsWith("http") || raw.startsWith("/")) return raw;
-    return raw.startsWith("./") ? `/${raw.slice(2)}` : raw;
+    if (raw.startsWith("http")) return raw;
+    if (raw.startsWith("/")) return raw.slice(1);
+    return raw.startsWith("./") ? raw.slice(2) : raw;
   }
 
   function isValidEmail(email) {

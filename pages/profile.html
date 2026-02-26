@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Профиль — PROdom</title>
+<link rel="stylesheet" href="../style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="container header-container">
+
+        <a href="../index.html" class="logo-wrapper">
+            <img src="../images/logo.svg" class="logo-img" alt="PROdom">
+            <span class="logo-text">PROdom</span>
+        </a>
+
+        <nav class="nav">
+            <a href="about.html">О нас</a>
+            <a href="../index.html">Главная</a>
+            <a href="catalogue.html">Каталог</a>
+            <a href="contacts.html">Контакты</a>
+            <a href="profile.html" class="active">Профиль</a>
+            <a href="../admin/admin.html" class="admin-nav-link">Админ</a>
+        </nav>
+
+        <div class="header-actions">
+            <a href="favourites.html">
+                <img src="../images/like.svg" alt="Избранное">
+                <span class="fav-count">0</span>
+            </a>
+            <a href="cart.html">
+                <img src="../images/cart.svg" alt="Корзина">
+                <span class="cart-count">0</span>
+            </a>
+        </div>
+
+    </div>
+</header>
+
+<main class="container">
+    <section class="profile-page">
+        <h1 class="section-title cart-title">Профиль</h1>
+        <p class="cart-subtitle">Ваши контактные данные и история заказов.</p>
+
+        <div class="profile-layout">
+            <aside class="profile-card">
+                <div class="profile-avatar-wrap">
+                    <img id="profile-avatar" src="../images/logo.svg" alt="Аватар" class="profile-avatar">
+                </div>
+
+                <div class="order-field">
+                    <label for="profile-avatar-input">Аватар</label>
+                    <input id="profile-avatar-input" type="file" accept="image/*" class="input">
+                </div>
+
+                <div class="order-field">
+                    <label for="profile-full-name">ФИО</label>
+                    <input id="profile-full-name" type="text" class="input" placeholder="Иванов Иван Иванович">
+                </div>
+
+                <div class="order-field">
+                    <label for="profile-email">Email</label>
+                    <input id="profile-email" type="email" class="input" placeholder="mail@example.com">
+                </div>
+
+                <div class="order-field">
+                    <label for="profile-phone">Телефон</label>
+                    <input id="profile-phone" type="tel" class="input" placeholder="+7 (___) ___-__-__">
+                </div>
+
+                <button id="profile-save" class="btn-primary order-submit" type="button">Сохранить профиль</button>
+            </aside>
+
+            <section class="profile-history">
+                <h2>История заказов</h2>
+                <div id="profile-orders-empty" class="cart-empty" hidden>
+                    Заказы пока не найдены.
+                </div>
+                <div id="profile-orders-list" class="profile-orders-list"></div>
+            </section>
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <div class="container">
+
+        <div class="newsletter">
+            <div>
+                <h3>Готовы узнавать о новинках?</h3>
+                <input type="email" placeholder="Ваш Email" class="input">
+                <button class="btn-primary">Отправить</button>
+            </div>
+
+            <div>
+                <h4>Товары для дома</h4>
+                <p>Мы создаем комфорт и уют вместе с вами.</p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            © 2026 PROdom. Все права защищены.
+        </div>
+
+    </div>
+</footer>
+
+<script src="../script.js"></script>
+<script>
+(function () {
+  const PROFILE_KEY = "prodom_profile_v1";
+  const ORDERS_KEY = "prodom_orders_v1";
+
+  const avatarNode = document.getElementById("profile-avatar");
+  const avatarInput = document.getElementById("profile-avatar-input");
+  const fullNameInput = document.getElementById("profile-full-name");
+  const emailInput = document.getElementById("profile-email");
+  const phoneInput = document.getElementById("profile-phone");
+  const saveBtn = document.getElementById("profile-save");
+  const ordersList = document.getElementById("profile-orders-list");
+  const emptyNode = document.getElementById("profile-orders-empty");
+
+  let avatarData = "";
+
+  document.addEventListener("DOMContentLoaded", initPage);
+
+  function initPage() {
+    const profile = readProfile();
+    fullNameInput.value = String(profile.fullName || "");
+    emailInput.value = String(profile.email || "");
+    phoneInput.value = String(profile.phone || "");
+    avatarData = String(profile.avatar || "");
+    avatarNode.src = avatarData || "../images/logo.svg";
+
+    renderOrders();
+
+    avatarInput?.addEventListener("change", onAvatarChange);
+    saveBtn?.addEventListener("click", onSaveProfile);
+  }
+
+  async function onAvatarChange() {
+    const file = avatarInput.files && avatarInput.files[0];
+    if (!file) return;
+    try {
+      avatarData = await fileToDataUrl(file);
+      avatarNode.src = avatarData || "../images/logo.svg";
+    } catch {
+      avatarData = "";
+      avatarNode.src = "../images/logo.svg";
+      alert("Не удалось загрузить аватар.");
+    }
+  }
+
+  function onSaveProfile() {
+    const profile = {
+      fullName: sanitizePlainText(fullNameInput.value || "", 120),
+      email: sanitizePlainText(emailInput.value || "", 120),
+      phone: sanitizePhone(phoneInput.value || ""),
+      avatar: avatarData || ""
+    };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    renderOrders();
+    alert("Профиль сохранен.");
+  }
+
+  function renderOrders() {
+    const profile = readProfile();
+    const orders = readOrders();
+    const filtered = filterOrdersByProfile(orders, profile);
+    ordersList.innerHTML = "";
+
+    if (!filtered.length) {
+      emptyNode.hidden = false;
+      return;
+    }
+
+    emptyNode.hidden = true;
+    const fragment = document.createDocumentFragment();
+
+    filtered.forEach((order) => {
+      const item = document.createElement("article");
+      item.className = "profile-order-item";
+
+      const items = Array.isArray(order.items) ? order.items : [];
+      const lines = items
+        .map((entry) => {
+          const qty = Math.max(1, Number(entry.quantity) || 1);
+          return `${escapeHtml(sanitizePlainText(entry.name || "Товар", 120))} x ${qty}`;
+        })
+        .join(", ");
+
+      item.innerHTML = `
+        <div class="profile-order-top">
+          <h3>${escapeHtml(sanitizePlainText(order.id || "Заказ", 60))}</h3>
+          <strong>${formatPrice(order.total || 0)}</strong>
+        </div>
+        <p class="profile-order-meta">Дата: ${formatDate(order.createdAt)}</p>
+        <p class="profile-order-meta">Адрес: ${escapeHtml(sanitizePlainText(order.customer?.address || "—", 220))}</p>
+        <p class="profile-order-meta">Состав: ${lines || "Нет данных"}</p>
+      `;
+
+      fragment.appendChild(item);
+    });
+
+    ordersList.appendChild(fragment);
+  }
+
+  function filterOrdersByProfile(orders, profile) {
+    const email = normalize(profile.email);
+    const phone = normalizePhone(profile.phone);
+
+    if (!email && !phone) return orders;
+
+    return orders.filter((order) => {
+      const orderEmail = normalize(order?.customer?.email);
+      const orderPhone = normalizePhone(order?.customer?.phone);
+      if (email && orderEmail === email) return true;
+      if (phone && orderPhone === phone) return true;
+      return false;
+    });
+  }
+
+  function readProfile() {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function readOrders() {
+    try {
+      const raw = localStorage.getItem(ORDERS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function normalize(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function normalizePhone(value) {
+    return String(value || "").replace(/[^\d+]/g, "");
+  }
+
+  function sanitizePhone(value) {
+    return String(value || "").replace(/[^\d+\-\s()]/g, "").trim().slice(0, 30);
+  }
+
+  function sanitizePlainText(value, maxLength) {
+    const limit = Math.max(1, Number(maxLength) || 300);
+    return String(value || "")
+      .replace(/[\u0000-\u001F\u007F]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, limit);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatPrice(value) {
+    return `${new Intl.NumberFormat("ru-RU").format(Math.round(Number(value) || 0))} ₽`;
+  }
+
+  function formatDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
+  }
+})();
+</script>
+</body>
+</html>

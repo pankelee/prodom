@@ -1,17 +1,9 @@
-﻿(function () {
+(function () {
   const layout = document.querySelector(".catalog-layout");
   if (!layout) return;
 
   const grid = document.querySelector(".catalog-products .products-grid");
   if (!grid) return;
-
-  const originalCards = Array.from(grid.querySelectorAll(".product-card"));
-  if (!originalCards.length) return;
-
-  duplicateCardsToCount(originalCards, grid, 60);
-  document.dispatchEvent(new Event("products:updated"));
-
-  const cards = Array.from(grid.querySelectorAll(".product-card"));
 
   const filterPanel = document.querySelector(".catalog-filters");
   const categorySelect = document.getElementById("catalogue-category-filter");
@@ -20,19 +12,140 @@
   const maxPriceInput = priceInputs[1] || null;
   const applyButton = filterPanel?.querySelector(".filter-btn") || null;
   const searchInput = document.querySelector(".header-actions .input");
-
   const pageSizeSelect = document.getElementById("catalogue-page-size");
   const paginationNode = document.getElementById("catalogue-pagination");
-
   const emptyState = ensureEmptyState(grid);
 
+  let cards = [];
   let currentPage = 1;
   let pageSize = Number(pageSizeSelect?.value) || 8;
-  let filtered = cards.slice();
+  let filtered = [];
 
-  applyCategoryFromUrl();
+  bootstrap();
 
-  const applyFilters = () => {
+  function bootstrap() {
+    renderCatalogueFromSources();
+    bindEvents();
+    applyCategoryFromUrl();
+    applyFilters();
+  }
+
+  function bindEvents() {
+    applyButton?.addEventListener("click", (event) => {
+      event.preventDefault();
+      applyFilters();
+    });
+
+    minPriceInput?.addEventListener("input", applyFilters);
+    maxPriceInput?.addEventListener("input", applyFilters);
+    searchInput?.addEventListener("input", applyFilters);
+    categorySelect?.addEventListener("change", () => {
+      currentPage = 1;
+      applyFilters();
+    });
+
+    pageSizeSelect?.addEventListener("change", () => {
+      pageSize = Number(pageSizeSelect.value) || 8;
+      currentPage = 1;
+      applyFilters();
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (!event.key || event.key === "prodom_admin_v1") {
+        renderCatalogueFromSources();
+        currentPage = 1;
+        applyCategoryFromUrl();
+        applyFilters();
+      }
+    });
+  }
+
+  function renderCatalogueFromSources() {
+    const admin = window.PROdom?.readAdminCatalogSafe?.();
+    const products = Array.isArray(admin?.products) ? admin.products : [];
+
+    if (!products.length) {
+      cards = Array.from(grid.querySelectorAll(".product-card"));
+      syncCategoryOptionsFromCards();
+      document.dispatchEvent(new Event("products:updated"));
+      return;
+    }
+
+    const categories = Array.isArray(admin?.categories) && admin.categories.length
+      ? admin.categories
+      : extractCategoriesFromProducts(products);
+
+    renderCategoryOptions(categories);
+    renderCards(products);
+    cards = Array.from(grid.querySelectorAll(".product-card"));
+    document.dispatchEvent(new Event("products:updated"));
+  }
+
+  function renderCards(products) {
+    grid.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    products.forEach((product, index) => {
+      const name = String(product?.name || `Товар ${index + 1}`).trim();
+      const description = String(product?.description || "").trim();
+      const category = String(product?.category || "").trim();
+      const price = Math.max(0, Number(product?.price) || 0);
+      const id = String(product?.id || `admin-product-${index + 1}`);
+      const image = normalizeImageForCataloguePage(product?.photo);
+
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.dataset.category = normalizeCategory(category);
+      card.dataset.productId = id;
+      card.innerHTML = `
+        <img src="${image}" alt="${escapeHtml(name)}">
+        <h4>${escapeHtml(name)}</h4>
+        <h5>${escapeHtml(description)}</h5>
+        <p class="product-category">${escapeHtml(category || "Без категории")}</p>
+        <p class="price">${formatPrice(price)}</p>
+        <button class="btn-primary">В корзину</button>
+      `;
+      fragment.appendChild(card);
+    });
+
+    grid.appendChild(fragment);
+  }
+
+  function syncCategoryOptionsFromCards() {
+    if (!categorySelect) return;
+    const values = new Set();
+    cards.forEach((card) => {
+      const value = normalizeCategory(card.dataset.category || card.querySelector(".product-category")?.textContent || "");
+      if (value) values.add(value);
+    });
+    const titles = Array.from(values).map(capitalize);
+    renderCategoryOptions(titles);
+  }
+
+  function renderCategoryOptions(categories) {
+    if (!categorySelect) return;
+
+    const currentValue = normalizeCategory(categorySelect.value || "");
+    categorySelect.innerHTML = "";
+
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "Все категории";
+    categorySelect.appendChild(allOption);
+
+    categories.forEach((category) => {
+      const clean = String(category || "").trim();
+      if (!clean) return;
+      const option = document.createElement("option");
+      option.value = normalizeCategory(clean);
+      option.textContent = clean;
+      categorySelect.appendChild(option);
+    });
+
+    if (currentValue) categorySelect.value = currentValue;
+  }
+
+  function applyFilters() {
     const minPrice = minPriceInput ? Number(minPriceInput.value) : 0;
     const maxPrice = maxPriceInput ? Number(maxPriceInput.value) : 0;
     const hasMin = Number.isFinite(minPrice) && minPrice > 0;
@@ -41,12 +154,9 @@
     const term = String(searchInput?.value || "").trim().toLowerCase();
 
     filtered = cards.filter((card) => {
-      const priceText = card.querySelector(".price")?.textContent || "";
+      const price = readPrice(card.querySelector(".price")?.textContent || "");
       const title = String(card.querySelector("h4")?.textContent || "").toLowerCase();
-      const price = readPrice(priceText);
-      const category = normalizeCategory(
-        card.dataset.category || card.querySelector(".product-category")?.textContent || ""
-      );
+      const category = normalizeCategory(card.dataset.category || card.querySelector(".product-category")?.textContent || "");
 
       if (selectedCategory && category !== selectedCategory) return false;
       if (hasMin && price < minPrice) return false;
@@ -57,12 +167,12 @@
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
-    if (filtered.length === 0) currentPage = 1;
+    if (!filtered.length) currentPage = 1;
 
     render();
-  };
+  }
 
-  const render = () => {
+  function render() {
     cards.forEach((card) => {
       card.style.display = "none";
     });
@@ -74,7 +184,6 @@
     }
 
     emptyState.style.display = "none";
-
     const start = (currentPage - 1) * pageSize;
     const end = start + pageSize;
     filtered.slice(start, end).forEach((card) => {
@@ -82,81 +191,77 @@
     });
 
     renderPagination();
-  };
+  }
 
-  const renderPagination = () => {
+  function renderPagination() {
     if (!paginationNode) return;
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     paginationNode.innerHTML = "";
-
     if (totalPages <= 1) return;
 
     const fragment = document.createDocumentFragment();
-
-    const createBtn = (label, page, disabled, isActive) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "pagination-btn" + (isActive ? " is-active" : "");
-      btn.textContent = String(label);
-      if (disabled) {
-        btn.disabled = true;
-      } else {
-        btn.addEventListener("click", () => {
-          currentPage = page;
-          render();
-        });
-      }
-      return btn;
-    };
-
-    fragment.appendChild(createBtn("<", Math.max(1, currentPage - 1), currentPage === 1, false));
+    fragment.appendChild(createPaginationButton("<", Math.max(1, currentPage - 1), currentPage === 1, false));
 
     for (let page = 1; page <= totalPages; page += 1) {
-      fragment.appendChild(createBtn(page, page, false, page === currentPage));
+      fragment.appendChild(createPaginationButton(String(page), page, false, page === currentPage));
     }
 
-    fragment.appendChild(createBtn(">", Math.min(totalPages, currentPage + 1), currentPage === totalPages, false));
+    fragment.appendChild(
+      createPaginationButton(">", Math.min(totalPages, currentPage + 1), currentPage === totalPages, false)
+    );
 
     paginationNode.appendChild(fragment);
-  };
+  }
 
-  applyButton?.addEventListener("click", (event) => {
-    event.preventDefault();
-    applyFilters();
-  });
+  function createPaginationButton(label, page, disabled, active) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `pagination-btn${active ? " is-active" : ""}`;
+    btn.textContent = label;
 
-  minPriceInput?.addEventListener("input", applyFilters);
-  maxPriceInput?.addEventListener("input", applyFilters);
-  categorySelect?.addEventListener("change", () => {
-    currentPage = 1;
-    applyFilters();
-  });
-  searchInput?.addEventListener("input", applyFilters);
-
-  pageSizeSelect?.addEventListener("change", () => {
-    pageSize = Number(pageSizeSelect.value) || 8;
-    currentPage = 1;
-    applyFilters();
-  });
-
-  applyFilters();
-
-  function duplicateCardsToCount(seedCards, container, total) {
-    const originalCount = seedCards.length;
-    const allCards = seedCards.slice();
-
-    allCards.forEach((card, index) => {
-      card.dataset.productId = `catalogue-${index + 1}`;
-    });
-
-    for (let i = originalCount; i < total; i += 1) {
-      const source = seedCards[i % originalCount];
-      const clone = source.cloneNode(true);
-      clone.dataset.productId = `catalogue-${i + 1}`;
-      container.appendChild(clone);
-      allCards.push(clone);
+    if (disabled) {
+      btn.disabled = true;
+      return btn;
     }
+
+    btn.addEventListener("click", () => {
+      currentPage = page;
+      render();
+    });
+    return btn;
+  }
+
+  function applyCategoryFromUrl() {
+    if (!categorySelect) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const categoryFromUrl = normalizeCategory(params.get("category") || "");
+    if (!categoryFromUrl) return;
+
+    const options = Array.from(categorySelect.options);
+    const matched = options.find((option) => normalizeCategory(option.value) === categoryFromUrl);
+    if (matched) {
+      categorySelect.value = matched.value;
+    }
+  }
+
+  function extractCategoriesFromProducts(products) {
+    const set = new Set();
+    products.forEach((item) => {
+      const category = String(item?.category || "").trim();
+      if (category) set.add(category);
+    });
+    return Array.from(set);
+  }
+
+  function normalizeImageForCataloguePage(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "../images/logo.svg";
+    if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
+    if (raw.startsWith("/")) return `..${raw}`;
+    if (raw.startsWith("../") || raw.startsWith("./")) return raw;
+    return `../${raw}`;
   }
 
   function ensureEmptyState(parent) {
@@ -184,17 +289,22 @@
     return String(value || "").trim().toLowerCase();
   }
 
-  function applyCategoryFromUrl() {
-    if (!categorySelect) return;
+  function capitalize(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
 
-    const params = new URLSearchParams(window.location.search);
-    const categoryFromUrl = normalizeCategory(params.get("category") || "");
-    if (!categoryFromUrl) return;
+  function formatPrice(value) {
+    return `${new Intl.NumberFormat("ru-RU").format(Math.round(Number(value) || 0))} ₽`;
+  }
 
-    const options = Array.from(categorySelect.options);
-    const matched = options.find((option) => normalizeCategory(option.value) === categoryFromUrl);
-    if (matched) {
-      categorySelect.value = matched.value;
-    }
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 })();

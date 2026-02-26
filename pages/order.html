@@ -23,12 +23,12 @@
             <a href="../index.html">Главная</a>
             <a href="catalogue.html">Каталог</a>
             <a href="contacts.html">Контакты</a>
+            <a href="profile.html">Профиль</a>
             <a href="../admin/admin.html" class="admin-nav-link">Админ</a>
         </nav>
 
         <div class="header-actions">
-            <input type="text" placeholder="Поиск..." class="input">
-            <a href="favourites.html">
+                        <a href="favourites.html">
                 <img src="../images/like.svg" alt="Избранное">
                 <span class="fav-count">0</span>
             </a>
@@ -139,21 +139,26 @@
 <script>
 (function () {
   const STORAGE_KEY = "cart";
+  const ORDER_STORAGE_KEY = "prodom_orders_v1";
+  const PROFILE_STORAGE_KEY = "prodom_profile_v1";
   const listNode = document.getElementById("order-list");
   const emptyNode = document.getElementById("order-empty");
   const totalNode = document.getElementById("order-total");
   const submitBtn = document.getElementById("order-submit");
-  const requiredFields = [
-    document.getElementById("order-name"),
-    document.getElementById("order-email"),
-    document.getElementById("order-phone"),
-    document.getElementById("order-address")
-  ].filter(Boolean);
+  const nameField = document.getElementById("order-name");
+  const emailField = document.getElementById("order-email");
+  const phoneField = document.getElementById("order-phone");
+  const addressField = document.getElementById("order-address");
+  const requiredFields = [nameField, emailField, phoneField, addressField].filter(Boolean);
 
   document.addEventListener("DOMContentLoaded", initOrderPage);
 
   function initOrderPage() {
     if (!listNode || !emptyNode || !totalNode) return;
+    const profile = readProfile();
+    if (nameField) nameField.value = String(profile.fullName || "");
+    if (emailField) emailField.value = String(profile.email || "");
+    if (phoneField) phoneField.value = String(profile.phone || "");
     render();
 
     submitBtn?.addEventListener("click", () => {
@@ -166,7 +171,10 @@
         return;
       }
 
-      alert("Заказ оформлен!");
+      const order = buildOrder(cart);
+      saveOrder(order);
+      saveProfileFromOrder(order.customer);
+      alert(`Заказ оформлен! Номер: ${order.id}`);
       localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
       if (window.PROdom && typeof window.PROdom.updateCartBadge === "function") {
         window.PROdom.updateCartBadge();
@@ -183,6 +191,90 @@
     } catch {
       return [];
     }
+  }
+
+  function readOrders() {
+    try {
+      const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveOrder(order) {
+    const orders = readOrders();
+    orders.unshift(order);
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
+  }
+
+  function buildOrder(cart) {
+    const items = cart.map((item) => {
+      const quantity = Math.max(1, Number(item.quantity) || 1);
+      const price = Math.max(0, Number(item.price) || 0);
+      return {
+        id: String(item.id || ""),
+        name: String(item.name || "Товар"),
+        image: String(item.image || ""),
+        quantity,
+        price,
+        total: price * quantity
+      };
+    });
+
+    const total = items.reduce((sum, item) => sum + item.total, 0);
+    const paymentNode = document.querySelector('input[name="payment"]:checked');
+    const deliveryNode = document.querySelector('input[name="delivery"]:checked');
+
+    return {
+      id: `ORD-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      customer: {
+        fullName: sanitizePlainText(nameField?.value || "", 120),
+        email: sanitizePlainText(emailField?.value || "", 120),
+        phone: sanitizePhone(phoneField?.value || ""),
+        address: sanitizePlainText(addressField?.value || "", 220)
+      },
+      payment: String(paymentNode?.value || ""),
+      delivery: String(deliveryNode?.value || ""),
+      items,
+      total
+    };
+  }
+
+  function saveProfileFromOrder(customer) {
+    const profile = readProfile();
+    const next = {
+      fullName: String(customer?.fullName || "").trim() || profile.fullName || "",
+      email: String(customer?.email || "").trim() || profile.email || "",
+      phone: String(customer?.phone || "").trim() || profile.phone || "",
+      avatar: String(profile.avatar || "")
+    };
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next));
+  }
+
+  function readProfile() {
+    try {
+      const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function sanitizePlainText(value, maxLength) {
+    const limit = Math.max(1, Number(maxLength) || 300);
+    return String(value || "")
+      .replace(/[\u0000-\u001F\u007F]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, limit);
+  }
+
+  function sanitizePhone(value) {
+    return String(value || "").replace(/[^\d+\-\s()]/g, "").trim().slice(0, 30);
   }
 
   function formatPrice(value) {
@@ -271,3 +363,4 @@
 </script>
 </body>
 </html>
+

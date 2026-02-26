@@ -287,6 +287,59 @@
       font-size: 14px;
     }
 
+    .orders-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .orders-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .order-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 8px;
+    }
+
+    .order-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .order-card-title {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .order-card-meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      display: grid;
+      gap: 3px;
+    }
+
+    .order-items {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      display: grid;
+      gap: 4px;
+    }
+
     @media (max-width: 980px) {
       .layout {
         grid-template-columns: 1fr;
@@ -379,12 +432,24 @@
           <div id="products-grid" class="products-grid"></div>
         </div>
       </section>
+
+      <section class="panel" style="grid-column: 1 / -1;">
+        <div class="orders-head">
+          <h2 style="margin:0;">Заказы</h2>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span id="orders-count" class="muted">0</span>
+            <button id="clear-orders" class="btn btn-danger" type="button">Очистить заказы</button>
+          </div>
+        </div>
+        <div id="orders-list" class="orders-list"></div>
+      </section>
     </main>
   </div>
 
   <script>
     (function () {
       const STORAGE_KEY = "prodom_admin_v1";
+      const ORDER_STORAGE_KEY = "prodom_orders_v1";
       const FALLBACK_IMAGE =
         "data:image/svg+xml;charset=UTF-8," +
         encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="100%" height="100%" fill="#eef4ff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#5f78a4" font-family="Arial" font-size="28">Нет фото</text></svg>');
@@ -412,6 +477,9 @@
 
       const resetAllBtn = document.getElementById("reset-all");
       const exportBtn = document.getElementById("export-data");
+      const ordersList = document.getElementById("orders-list");
+      const ordersCount = document.getElementById("orders-count");
+      const clearOrdersBtn = document.getElementById("clear-orders");
 
       let pendingPhotoData = "";
 
@@ -433,12 +501,14 @@
 
         resetAllBtn.addEventListener("click", onResetAll);
         exportBtn.addEventListener("click", onExport);
+        clearOrdersBtn.addEventListener("click", onClearOrders);
       }
 
       function renderAll() {
         renderCategories();
         renderCategorySelect();
         renderProducts();
+        renderOrders();
         photoPreview.src = FALLBACK_IMAGE;
       }
 
@@ -530,11 +600,11 @@
           return;
         }
 
-        const id = String(productIdInput.value || "").trim();
-        const name = String(productNameInput.value || "").trim();
+        const id = sanitizeId(productIdInput.value || "");
+        const name = sanitizePlainText(productNameInput.value || "", 120);
         const category = String(productCategorySelect.value || "").trim();
         const price = Math.max(0, Number(productPriceInput.value || 0));
-        const description = String(productDescriptionInput.value || "").trim();
+        const description = sanitizePlainText(productDescriptionInput.value || "", 400);
 
         if (!name || !category || !Number.isFinite(price)) {
           showStatus(productStatus, "warn", "Заполните обязательные поля товара.");
@@ -729,6 +799,69 @@
         URL.revokeObjectURL(url);
       }
 
+      function onClearOrders() {
+        const ok = window.confirm("Удалить все оформленные заказы?");
+        if (!ok) return;
+
+        localStorage.removeItem(ORDER_STORAGE_KEY);
+        renderOrders();
+        showStatus(productStatus, "ok", "Список заказов очищен.");
+      }
+
+      function renderOrders() {
+        if (!ordersList || !ordersCount) return;
+
+        const orders = readOrders();
+        ordersCount.textContent = `${orders.length}`;
+        ordersList.innerHTML = "";
+
+        if (!orders.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Оформленных заказов пока нет.";
+          ordersList.appendChild(empty);
+          return;
+        }
+
+        orders.forEach((order) => {
+          const card = document.createElement("article");
+          card.className = "order-card";
+
+          const title = String(order?.id || "Без номера");
+          const createdAt = formatDate(order?.createdAt);
+          const customerName = String(order?.customer?.fullName || "Без имени");
+          const customerEmail = String(order?.customer?.email || "—");
+          const customerPhone = String(order?.customer?.phone || "—");
+          const total = formatPrice(order?.total || 0);
+          const items = Array.isArray(order?.items) ? order.items : [];
+
+          const itemLines = items
+            .map((item) => {
+              const name = escapeHtml(item?.name || "Товар");
+              const qty = Math.max(1, Number(item?.quantity) || 1);
+              const lineTotal = formatPrice(item?.total || (Number(item?.price) || 0) * qty);
+              return `<li>${name} x ${qty} — ${lineTotal}</li>`;
+            })
+            .join("");
+
+          card.innerHTML = `
+            <div class="order-card-top">
+              <h3 class="order-card-title">Заказ ${escapeHtml(title)}</h3>
+              <span class="chip">${escapeHtml(total)}</span>
+            </div>
+            <p class="order-card-meta">
+              <span>Дата: ${escapeHtml(createdAt)}</span>
+              <span>Покупатель: ${escapeHtml(customerName)}</span>
+              <span>Email: ${escapeHtml(customerEmail)}</span>
+              <span>Телефон: ${escapeHtml(customerPhone)}</span>
+            </p>
+            <ol class="order-items">${itemLines || "<li>Состав заказа недоступен</li>"}</ol>
+          `;
+
+          ordersList.appendChild(card);
+        });
+      }
+
       function showStatus(node, type, text) {
         node.className = `status show ${type}`;
         node.textContent = text;
@@ -740,6 +873,16 @@
 
       function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function readOrders() {
+        try {
+          const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
       }
 
       function loadState() {
@@ -757,11 +900,11 @@
             ? parsed.products
                 .filter((item) => item && typeof item === "object")
                 .map((item) => ({
-                  id: String(item.id || makeId()),
-                  name: String(item.name || "").trim(),
+                  id: sanitizeId(item.id || makeId()),
+                  name: sanitizePlainText(item.name || "", 120),
                   category: String(item.category || "").trim(),
                   price: Math.max(0, Number(item.price) || 0),
-                  description: String(item.description || "").trim(),
+                  description: sanitizePlainText(item.description || "", 400),
                   photo: String(item.photo || "")
                 }))
                 .filter((item) => item.name && item.category)
@@ -791,6 +934,20 @@
         return text.charAt(0).toUpperCase() + text.slice(1);
       }
 
+      function sanitizePlainText(value, maxLength) {
+        const limit = Math.max(1, Number(maxLength) || 300);
+        return String(value || "")
+          .replace(/[\u0000-\u001F\u007F]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, limit);
+      }
+
+      function sanitizeId(value) {
+        const text = String(value || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        return text || makeId();
+      }
+
       function escapeHtml(value) {
         return String(value || "")
           .replace(/&/g, "&amp;")
@@ -810,6 +967,18 @@
 
       function formatPrice(price) {
         return `${new Intl.NumberFormat("ru-RU").format(Math.round(Number(price) || 0))} ₽`;
+      }
+
+      function formatDate(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "—";
+        return new Intl.DateTimeFormat("ru-RU", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(date);
       }
 
       function fileToDataUrl(file) {

@@ -1,16 +1,19 @@
 ﻿(function () {
   const CART_STORAGE_KEY = "cart";
   const FAV_STORAGE_KEY = "favourites";
+  const ADMIN_STORAGE_KEY = "prodom_admin_v1";
 
   document.addEventListener("DOMContentLoaded", () => {
     initSmoothScroll();
     initHeaderScroll();
     initSearchFocus();
-    initCardHoverEffects();
     initNewsletterForm();
+    initAdminIntegration();
+    initCardHoverEffects();
     initProductCards();
     initCartBadge();
     initCartBadgeAutoUpdate();
+    document.addEventListener("products:updated", initCardHoverEffects);
   });
 
   function initSmoothScroll() {
@@ -95,6 +98,113 @@
     });
   }
 
+  function initAdminIntegration() {
+    const adminState = readAdminCatalogSafe();
+    if (!adminState.categories.length && !adminState.products.length) return;
+
+    hydrateHomeCategories(adminState.categories);
+    hydrateHomePopular(adminState.products);
+
+    window.addEventListener("storage", (event) => {
+      if (!event.key || event.key === ADMIN_STORAGE_KEY) {
+        const nextState = readAdminCatalogSafe();
+        hydrateHomeCategories(nextState.categories);
+        hydrateHomePopular(nextState.products);
+      }
+    });
+  }
+
+  function hydrateHomeCategories(categories) {
+    const grid = document.querySelector(".catalog .catalog-grid");
+    if (!grid || !categories.length) return;
+
+    const icons = [
+      "images/plumber.svg",
+      "images/vacuum-cleaner.svg",
+      "images/construction.svg",
+      "images/paint-brush.svg",
+      "images/tools.svg"
+    ];
+
+    grid.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    categories.forEach((category, index) => {
+      const card = document.createElement("a");
+      card.className = "category-card";
+      card.href = `pages/catalogue.html?category=${encodeURIComponent(String(category || ""))}`;
+      card.innerHTML = `
+        <img src="${icons[index % icons.length]}" alt="${escapeHtml(category)}">
+        <span>${escapeHtml(category)}</span>
+      `;
+      fragment.appendChild(card);
+    });
+
+    grid.appendChild(fragment);
+  }
+
+  function hydrateHomePopular(products) {
+    const grid = document.querySelector(".popular .products-grid");
+    if (!grid || !products.length) return;
+
+    const items = products.slice(0, 4);
+    grid.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    items.forEach((product, index) => {
+      const name = String(product?.name || `Товар ${index + 1}`).trim();
+      const description = String(product?.description || "").trim();
+      const category = String(product?.category || "").trim();
+      const price = Math.max(0, Number(product?.price) || 0);
+      const image = resolveImageForCurrentPage(product?.photo);
+      const id = String(product?.id || slugify(name) || `product-${index + 1}`);
+
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.dataset.category = normalizeCategory(category);
+      card.dataset.productId = id;
+      card.innerHTML = `
+        <img src="${image}" alt="${escapeHtml(name)}">
+        <h4>${escapeHtml(name)}</h4>
+        <h5>${escapeHtml(description)}</h5>
+        <p class="product-category">${escapeHtml(category || "Без категории")}</p>
+        <p class="price">${formatPriceText(price)}</p>
+        <button class="btn-primary">В корзину</button>
+      `;
+
+      fragment.appendChild(card);
+    });
+
+    grid.appendChild(fragment);
+    document.dispatchEvent(new Event("products:updated"));
+  }
+
+  function readAdminCatalogSafe() {
+    try {
+      const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const categories = Array.isArray(parsed?.categories)
+        ? parsed.categories.map((item) => sanitizePlainText(item || "", 80)).filter(Boolean)
+        : [];
+      const products = Array.isArray(parsed?.products)
+        ? parsed.products
+            .map((item) => ({
+              id: sanitizeId(item?.id || ""),
+              name: sanitizePlainText(item?.name || "", 120),
+              category: sanitizePlainText(item?.category || "", 80),
+              price: Math.max(0, Number(item?.price) || 0),
+              description: sanitizePlainText(item?.description || "", 400),
+              photo: String(item?.photo || "")
+            }))
+            .filter((item) => item.name)
+        : [];
+
+      return { categories, products };
+    } catch {
+      return { categories: [], products: [] };
+    }
+  }
+
   function initProductCards() {
     const cards = Array.from(document.querySelectorAll(".product-card"));
     if (!cards.length) return;
@@ -150,34 +260,38 @@
     });
 
     const syncAll = () => {
-      cards.forEach((card) => {
+      document.querySelectorAll(".product-card").forEach((card) => {
         const qtyValue = card.querySelector(".product-card-qty .card-qty-value");
         const favBtn = card.querySelector(".product-card-actions .fav-btn");
         if (qtyValue) syncProductCardState(card, qtyValue, favBtn);
       });
     };
 
-    document.addEventListener("cart:updated", syncAll);
-    document.addEventListener("favourites:updated", syncAll);
-    document.addEventListener("products:updated", () => {
-      initProductCards();
-    });
-    window.addEventListener("storage", (event) => {
-      if (!event.key || event.key === CART_STORAGE_KEY || event.key === FAV_STORAGE_KEY) {
-        syncAll();
-      }
-    });
+    if (!window.__prodomProductListenersBound) {
+      window.__prodomProductListenersBound = true;
+
+      document.addEventListener("cart:updated", syncAll);
+      document.addEventListener("favourites:updated", syncAll);
+      document.addEventListener("products:updated", () => {
+        initProductCards();
+      });
+      window.addEventListener("storage", (event) => {
+        if (!event.key || event.key === CART_STORAGE_KEY || event.key === FAV_STORAGE_KEY) {
+          syncAll();
+        }
+      });
+    }
   }
 
   function buildProductFromCard(card, index) {
-    const name = String(card.querySelector("h4")?.textContent || `Товар ${index + 1}`).trim();
-    const description = String(card.querySelector("h5")?.textContent || "").trim();
+    const name = sanitizePlainText(card.querySelector("h4")?.textContent || `Товар ${index + 1}`, 120);
+    const description = sanitizePlainText(card.querySelector("h5")?.textContent || "", 400);
     const price = parsePrice(card.querySelector(".price")?.textContent || "0");
     const category = normalizeCategory(
       card.dataset.category || card.querySelector(".product-category")?.textContent || ""
     );
     const image = normalizeImagePath(card.querySelector("img")?.getAttribute("src"));
-    const id = String(card.dataset.productId || slugify(name) || `product-${index + 1}`);
+    const id = sanitizeId(card.dataset.productId || slugify(name) || `product-${index + 1}`);
 
     return {
       id,
@@ -277,12 +391,52 @@
     return String(value || "").trim().toLowerCase();
   }
 
+  function sanitizePlainText(value, maxLength) {
+    const limit = Math.max(1, Number(maxLength) || 300);
+    return String(value || "")
+      .replace(/[\u0000-\u001F\u007F]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, limit);
+  }
+
+  function sanitizeId(value) {
+    const normalized = String(value || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    return normalized || `p_${Date.now()}`;
+  }
+
   function normalizeImagePath(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
     if (raw.startsWith("http")) return raw;
     if (raw.startsWith("/")) return raw.slice(1);
     return raw.startsWith("./") ? raw.slice(2) : raw;
+  }
+
+  function resolveImageForCurrentPage(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return location.pathname.includes("/pages/") ? "../images/logo.svg" : "images/logo.svg";
+    }
+    if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
+    if (raw.startsWith("/")) return raw;
+    if (raw.startsWith("../") || raw.startsWith("./")) return raw;
+    if (location.pathname.includes("/pages/")) return `../${raw}`;
+    return raw;
+  }
+
+  function formatPriceText(value) {
+    const number = Math.max(0, Number(value) || 0);
+    return `${new Intl.NumberFormat("ru-RU").format(number)} ₽`;
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function isValidEmail(email) {
@@ -363,7 +517,7 @@
   }
 
   function makeCartItemId(productId) {
-    return String(productId || "").trim();
+    return sanitizeId(productId);
   }
 
   function addProductToCart(product, quantity) {
@@ -378,10 +532,10 @@
       cart.push({
         id: itemId,
         baseId: itemId,
-        name: String(product.name || "Товар"),
-        description: String(product.description || ""),
+        name: sanitizePlainText(product.name || "Товар", 120),
+        description: sanitizePlainText(product.description || "", 400),
         price: Number(product.price) || 0,
-        category: String(product.category || ""),
+        category: sanitizePlainText(product.category || "", 80),
         image: normalizeImagePath(product.image),
         quantity: safeQuantity
       });
@@ -411,10 +565,10 @@
       cart.push({
         id: itemId,
         baseId: itemId,
-        name: String(product.name || "Товар"),
-        description: String(product.description || ""),
+        name: sanitizePlainText(product.name || "Товар", 120),
+        description: sanitizePlainText(product.description || "", 400),
         price: Number(product.price) || 0,
-        category: String(product.category || ""),
+        category: sanitizePlainText(product.category || "", 80),
         image: normalizeImagePath(product.image),
         quantity: Math.min(99, quantity)
       });
@@ -451,10 +605,10 @@
     favourites.push({
       id,
       baseId: id,
-      name: String(product.name || "Товар"),
-      description: String(product.description || ""),
+      name: sanitizePlainText(product.name || "Товар", 120),
+      description: sanitizePlainText(product.description || "", 400),
       price: Number(product.price) || 0,
-      category: String(product.category || ""),
+      category: sanitizePlainText(product.category || "", 80),
       image: normalizeImagePath(product.image)
     });
 
@@ -487,10 +641,18 @@
 
     const notification = document.createElement("div");
     notification.className = `notification notification-${type || "info"}`;
-    notification.innerHTML = `
-      <span class="notification-message">${String(message || "")}</span>
-      <button class="notification-close" type="button" aria-label="Закрыть">&times;</button>
-    `;
+    const text = document.createElement("span");
+    text.className = "notification-message";
+    text.textContent = sanitizePlainText(message || "", 200);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "notification-close";
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Закрыть");
+    closeBtn.textContent = "×";
+
+    notification.appendChild(text);
+    notification.appendChild(closeBtn);
 
     document.body.appendChild(notification);
 
@@ -499,7 +661,6 @@
       setTimeout(() => notification.remove(), 200);
     };
 
-    const closeBtn = notification.querySelector(".notification-close");
     closeBtn?.addEventListener("click", close);
     setTimeout(close, 3000);
   }
@@ -566,6 +727,8 @@
     toggleFavourite,
     isFavourite,
     normalizeImagePath,
+    readAdminCatalogSafe,
+    resolveImageForCurrentPage,
     updateCartItemQuantity,
     getCartItemQuantity,
     initProductCards

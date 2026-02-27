@@ -269,11 +269,12 @@
 
   function normalizeImageForCataloguePage(value) {
     const raw = String(value || "").trim();
-    if (!raw) return "../images/logo.svg";
+    if (!raw) return "./../images/logo.svg";
     if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
-    if (raw.startsWith("/")) return `..${raw}`;
-    if (raw.startsWith("../") || raw.startsWith("./")) return raw;
-    return `../${raw}`;
+    if (raw.startsWith("/")) return `.${raw}`;
+    if (raw.startsWith("./../") || raw.startsWith("./")) return raw;
+    if (raw.startsWith("../")) return `./${raw}`;
+    return `./../${raw}`;
   }
 
   function ensureEmptyState(parent) {

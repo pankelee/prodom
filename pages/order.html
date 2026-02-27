@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Оформление заказа — PROdom</title>
-<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="./../style.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 
@@ -13,27 +13,28 @@
 <header class="header">
     <div class="container header-container">
 
-        <a href="../index.html" class="logo-wrapper">
-            <img src="../images/logo.svg" class="logo-img" alt="PROdom">
+        <a href="./../index.html" class="logo-wrapper">
+            <img src="./../images/logo.svg" class="logo-img" alt="PROdom">
             <span class="logo-text">PROdom</span>
         </a>
 
         <nav class="nav">
-            <a href="about.html">О нас</a>
-            <a href="../index.html">Главная</a>
-            <a href="catalogue.html">Каталог</a>
-            <a href="contacts.html">Контакты</a>
-            <a href="profile.html">Профиль</a>
-            <a href="../admin/admin.html" class="admin-nav-link">Админ</a>
+            <a href="./about.html">О нас</a>
+            <a href="./../index.html">Главная</a>
+            <a href="./catalogue.html">Каталог</a>
+            <a href="./contacts.html">Контакты</a>
+            <a href="./profile.html">Профиль</a>
+            <a href="./../admin/admin.html" class="admin-nav-link">Админ</a>
         </nav>
 
         <div class="header-actions">
-                        <a href="favourites.html">
-                <img src="../images/like.svg" alt="Избранное">
+                <a class="support-phone-link" href="tel:+70000000000">24/7: +7 (000) 000-00-00</a>
+                        <a href="./favourites.html">
+                <img src="./../images/like.svg" alt="Избранное">
                 <span class="fav-count">0</span>
             </a>
-            <a href="cart.html">
-                <img src="../images/cart.svg" alt="Корзина">
+            <a href="./cart.html">
+                <img src="./../images/cart.svg" alt="Корзина">
                 <span class="cart-count">0</span>
             </a>
         </div>
@@ -113,29 +114,50 @@
 </main>
 
 <footer class="footer">
-    <div class="container">
-
-        <div class="newsletter">
-            <div>
-                <h3>Готовы узнавать о новинках?</h3>
-                <input type="email" placeholder="Ваш Email" class="input">
-                <button class="btn-primary">Отправить</button>
-            </div>
-
-            <div>
-                <h4>Товары для дома</h4>
-                <p>Мы создаём комфорт и уют вместе с вами.</p>
-            </div>
+  <div class="container">
+    <div class="footer-layout">
+      <div class="footer-brand">
+        <h3>PROdom</h3>
+        <p class="footer-brand-note">Мы создаём комфорт и уют вместе с вами.</p>
+        <p>Телефон: +7 (000) 000-00-00</p>
+        <p>Email: info@prodom.ru</p>
+        <div class="footer-socials">
+          <a href="#" aria-label="VK"><img src="./../images/vk.svg" alt="VK"></a>
+          <a href="#" aria-label="Telegram"><img src="./../images/telegram.svg" alt="Telegram"></a>
+          <a href="#" aria-label="WhatsApp"><img src="./../images/whatsapp.svg" alt="WhatsApp"></a>
         </div>
-
-        <div class="footer-bottom">
-            © 2026 PROdom. Все права защищены.
-        </div>
-
+      </div>
+      <div class="footer-column">
+        <h4>Каталог</h4>
+        <ul class="footer-links">
+          <li><a href="./catalogue.html">Все товары</a></li>
+          <li><a href="./catalogue.html?category=%D1%81%D0%B0%D0%BD%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B0">Сантехника</a></li>
+          <li><a href="./catalogue.html?category=%D0%B8%D0%BD%D1%81%D1%82%D1%80%D1%83%D0%BC%D0%B5%D0%BD%D1%82%D1%8B">Инструменты</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h4>Покупателю</h4>
+        <ul class="footer-links">
+          <li><a href="./cart.html">Корзина</a></li>
+          <li><a href="./order.html">Оформление заказа</a></li>
+          <li><a href="./favourites.html">Избранное</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h4>Компания</h4>
+        <ul class="footer-links">
+          <li><a href="./../index.html">Главная</a></li>
+          <li><a href="./about.html">О нас</a></li>
+          <li><a href="./contacts.html">Контакты</a></li>
+          <li><a href="./profile.html">Профиль</a></li>
+        </ul>
+      </div>
     </div>
+    <div class="footer-bottom footer-copyright">© 2026 PROdom. Все права защищены.</div>
+  </div>
 </footer>
 
-<script src="../script.js"></script>
+<script src="./../script.js"></script>
 <script>
 (function () {
   const STORAGE_KEY = "cart";
@@ -150,6 +172,8 @@
   const phoneField = document.getElementById("order-phone");
   const addressField = document.getElementById("order-address");
   const requiredFields = [nameField, emailField, phoneField, addressField].filter(Boolean);
+  const paymentGroupNode = document.querySelector(".order-group:nth-of-type(1)");
+  const deliveryGroupNode = document.querySelector(".order-group:nth-of-type(2)");
 
   document.addEventListener("DOMContentLoaded", initOrderPage);
 
@@ -159,6 +183,7 @@
     if (nameField) nameField.value = String(profile.fullName || "");
     if (emailField) emailField.value = String(profile.email || "");
     if (phoneField) phoneField.value = String(profile.phone || "");
+    renderOrderMethodOptions();
     render();
 
     submitBtn?.addEventListener("click", () => {
@@ -179,7 +204,7 @@
       if (window.PROdom && typeof window.PROdom.updateCartBadge === "function") {
         window.PROdom.updateCartBadge();
       }
-      window.location.href = "../index.html";
+      window.location.href = "./../index.html";
     });
   }
 
@@ -238,9 +263,63 @@
       },
       payment: String(paymentNode?.value || ""),
       delivery: String(deliveryNode?.value || ""),
+      status: readOrderSettings().defaultOrderStatus,
       items,
       total
     };
+  }
+
+  function renderOrderMethodOptions() {
+    const settings = readOrderSettings();
+    renderRadioGroup(paymentGroupNode, "payment", settings.paymentMethods);
+    renderRadioGroup(deliveryGroupNode, "delivery", settings.deliveryMethods);
+  }
+
+  function renderRadioGroup(groupNode, name, labels) {
+    if (!groupNode) return;
+    const titleNode = groupNode.querySelector(".order-group-title");
+    if (!titleNode) return;
+    const titleText = titleNode.textContent;
+    groupNode.innerHTML = "";
+    const title = document.createElement("div");
+    title.className = "order-group-title";
+    title.textContent = String(titleText || "");
+    groupNode.appendChild(title);
+
+    labels.forEach((label, index) => {
+      const value = String(label || "").trim() || `${name}_${index}`;
+      const line = document.createElement("label");
+      line.className = "order-radio";
+      line.innerHTML = `
+        <input type="radio" name="${name}" value="${value}" ${index === 0 ? "checked" : ""}>
+        <span>${escapeHtml(label)}</span>
+      `;
+      groupNode.appendChild(line);
+    });
+  }
+
+  function readOrderSettings() {
+    const defaults = {
+      defaultOrderStatus: "Новый",
+      paymentMethods: ["Карта онлайн", "Наличные при получении"],
+      deliveryMethods: ["Доставка", "Самовывоз"]
+    };
+    try {
+      const read = window.PROdom?.readAdminSettingsSafe;
+      if (typeof read !== "function") return defaults;
+      const settings = read();
+      return {
+        defaultOrderStatus: String(settings?.defaultOrderStatus || defaults.defaultOrderStatus),
+        paymentMethods: Array.isArray(settings?.paymentMethods) && settings.paymentMethods.length
+          ? settings.paymentMethods
+          : defaults.paymentMethods,
+        deliveryMethods: Array.isArray(settings?.deliveryMethods) && settings.deliveryMethods.length
+          ? settings.deliveryMethods
+          : defaults.deliveryMethods
+      };
+    } catch {
+      return defaults;
+    }
   }
 
   function saveProfileFromOrder(customer) {
@@ -277,6 +356,15 @@
     return String(value || "").replace(/[^\d+\-\s()]/g, "").trim().slice(0, 30);
   }
 
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function formatPrice(value) {
     const number = Number(value) || 0;
     return `${new Intl.NumberFormat("ru-RU").format(number)} ₽`;
@@ -284,12 +372,13 @@
 
   function normalizeImage(src) {
     const value = String(src || "").trim();
-    if (!value) return "../images/logo.svg";
+    if (!value) return "./../images/logo.svg";
     if (value.startsWith("data:")) return value;
     if (value.startsWith("http")) return value;
-    if (value.startsWith("/")) return `..${value}`;
-    if (value.startsWith("../") || value.startsWith("./")) return value;
-    return `../${value}`;
+    if (value.startsWith("/")) return `.${value}`;
+    if (value.startsWith("./../") || value.startsWith("./")) return value;
+    if (value.startsWith("../")) return `./${value}`;
+    return `./../${value}`;
   }
 
   function render() {
@@ -364,4 +453,5 @@
 </script>
 </body>
 </html>
+
 

@@ -4,9 +4,11 @@
   const ADMIN_STORAGE_KEY = "prodom_admin_v1";
   const ORDER_STORAGE_KEY = "prodom_orders_v1";
   const FEEDBACK_STORAGE_KEY = "prodom_feedback_v1";
-  const DEFAULT_JSON_PATH = "data/products.json";
+  const DEFAULT_JSON_PATH = "./data/products.json";
 
   document.addEventListener("DOMContentLoaded", () => {
+    applyAdminManagedSettings();
+    initResponsiveHeader();
     initSmoothScroll();
     initHeaderScroll();
     initSearchFocus();
@@ -18,6 +20,12 @@
     initCartBadge();
     initCartBadgeAutoUpdate();
     document.addEventListener("products:updated", initCardHoverEffects);
+
+    window.addEventListener("storage", (event) => {
+      if (!event.key || event.key === ADMIN_STORAGE_KEY) {
+        applyAdminManagedSettings();
+      }
+    });
   });
 
   function initSmoothScroll() {
@@ -60,6 +68,207 @@
         input.style.transform = "";
       });
     });
+  }
+
+  function initResponsiveHeader() {
+    const header = document.querySelector(".header");
+    const container = header?.querySelector(".header-container");
+    const nav = container?.querySelector(".nav");
+    const actions = container?.querySelector(".header-actions");
+    if (!header || !container || !nav || !actions) return;
+    if (container.querySelector(".menu-toggle")) return;
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "menu-toggle";
+    toggle.setAttribute("aria-label", "Открыть меню");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.innerHTML = '<span></span><span></span><span></span>';
+    container.appendChild(toggle);
+
+    const overlay = document.createElement("button");
+    overlay.type = "button";
+    overlay.className = "menu-overlay";
+    overlay.setAttribute("aria-label", "Закрыть меню");
+
+    const drawer = document.createElement("aside");
+    drawer.className = "mobile-drawer";
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "menu-close";
+    close.setAttribute("aria-label", "Закрыть меню");
+    close.textContent = "×";
+
+    const navClone = nav.cloneNode(true);
+    navClone.classList.add("mobile-drawer-nav");
+    navClone.classList.remove("nav");
+
+    const actionLinks = Array.from(actions.querySelectorAll("a"));
+    const cartLink = actionLinks.find((link) => String(link.getAttribute("href") || "").includes("cart"));
+    const favLink = actionLinks.find((link) => String(link.getAttribute("href") || "").includes("favourites"));
+    const supportLink = actionLinks.find((link) => String(link.getAttribute("href") || "").startsWith("tel:"));
+    const profileLink = Array.from(nav.querySelectorAll("a")).find((link) => {
+      const href = String(link.getAttribute("href") || "");
+      return href.includes("profile");
+    });
+
+    const bottom = document.createElement("div");
+    bottom.className = "mobile-drawer-bottom";
+
+    const quickActions = document.createElement("div");
+    quickActions.className = "mobile-drawer-quick";
+
+    if (favLink) {
+      const clone = favLink.cloneNode(true);
+      clone.classList.add("mobile-quick-link");
+      quickActions.appendChild(clone);
+    }
+
+    if (cartLink) {
+      const clone = cartLink.cloneNode(true);
+      clone.classList.add("mobile-quick-link");
+      quickActions.appendChild(clone);
+    }
+
+    if (profileLink) {
+      const clone = profileLink.cloneNode(true);
+      clone.classList.add("mobile-quick-link", "mobile-quick-profile");
+      clone.textContent = "Профиль";
+      quickActions.appendChild(clone);
+    }
+
+    const supportWrap = document.createElement("div");
+    supportWrap.className = "mobile-drawer-support";
+    if (supportLink) {
+      const clone = supportLink.cloneNode(true);
+      clone.classList.add("mobile-support-link");
+      supportWrap.appendChild(clone);
+    }
+
+    drawer.appendChild(close);
+    drawer.appendChild(navClone);
+    bottom.appendChild(quickActions);
+    bottom.appendChild(supportWrap);
+    drawer.appendChild(bottom);
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(drawer);
+
+    const setState = (open) => {
+      document.body.classList.toggle("menu-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+
+    const closeMenu = () => setState(false);
+    const openMenu = () => setState(true);
+
+    toggle.addEventListener("click", () => {
+      const isOpen = document.body.classList.contains("menu-open");
+      setState(!isOpen);
+    });
+
+    overlay.addEventListener("click", closeMenu);
+    close.addEventListener("click", closeMenu);
+
+    drawer.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", closeMenu);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 1024) {
+        closeMenu();
+      }
+    });
+
+    if (window.innerWidth <= 1024) {
+      closeMenu();
+    } else {
+      setState(false);
+    }
+  }
+
+  function applyAdminManagedSettings() {
+    const settings = readAdminSettingsSafe();
+
+    document.querySelectorAll(".logo-text").forEach((node) => {
+      node.textContent = settings.brandName;
+    });
+
+    if (document.title.includes("PROdom")) {
+      document.title = document.title.replace(/PROdom/g, settings.brandName);
+    }
+
+    const heroTitle = document.querySelector(".hero .hero-text h1");
+    if (heroTitle) heroTitle.textContent = settings.heroTitle;
+    const heroSubtitle = document.querySelector(".hero .hero-text p");
+    if (heroSubtitle) heroSubtitle.textContent = settings.heroSubtitle;
+
+    document.querySelectorAll(".newsletter h3").forEach((node) => {
+      node.textContent = settings.newsletterTitle;
+    });
+    document.querySelectorAll(".newsletter > div:nth-child(2) p").forEach((node) => {
+      node.textContent = settings.newsletterNote;
+    });
+
+    document.querySelectorAll(".support-phone-link").forEach((node) => {
+      node.href = `tel:${settings.supportPhone.replace(/[^\d+]/g, "")}`;
+      node.textContent = `24/7: ${settings.supportPhone}`;
+    });
+
+    document.querySelectorAll(".footer-brand-note").forEach((node) => {
+      node.textContent = settings.newsletterNote;
+    });
+    document.querySelectorAll(".footer-copyright").forEach((node) => {
+      node.textContent = `© 2026 ${settings.brandName}. Все права защищены.`;
+    });
+
+    const contactCard = document.querySelector(".contacts-grid .contact-card:nth-child(3) p");
+    if (contactCard) {
+      contactCard.innerHTML = `Телефон: ${escapeHtml(settings.supportPhone)}<br>Email: ${escapeHtml(settings.supportEmail)}`;
+    }
+
+    const topicSelect = document.getElementById("contact-topic");
+    if (topicSelect) {
+      const prev = String(topicSelect.value || "").trim();
+      topicSelect.innerHTML = "";
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Выберите тему обращения";
+      topicSelect.appendChild(placeholder);
+
+      settings.contactTopics.forEach((topic) => {
+        const option = document.createElement("option");
+        option.value = topic;
+        option.textContent = topic;
+        topicSelect.appendChild(option);
+      });
+
+      if (settings.contactTopics.includes(prev)) {
+        topicSelect.value = prev;
+      }
+    }
+
+    const pageSizeSelect = document.getElementById("catalogue-page-size");
+    if (pageSizeSelect) {
+      const prev = String(pageSizeSelect.value || "").trim();
+      pageSizeSelect.innerHTML = "";
+      settings.catalogPageSizeOptions.forEach((size) => {
+        const option = document.createElement("option");
+        option.value = String(size);
+        option.textContent = String(size);
+        pageSizeSelect.appendChild(option);
+      });
+      pageSizeSelect.value = settings.catalogPageSizeOptions.includes(Number(prev))
+        ? prev
+        : String(settings.catalogPageSizeOptions[0]);
+      pageSizeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
 
   function initCardHoverEffects() {
@@ -184,11 +393,11 @@
     if (!grid || !categories.length) return;
 
     const icons = [
-      "images/plumber.svg",
-      "images/vacuum-cleaner.svg",
-      "images/construction.svg",
-      "images/paint-brush.svg",
-      "images/tools.svg"
+      "./images/plumber.svg",
+      "./images/vacuum-cleaner.svg",
+      "./images/construction.svg",
+      "./images/paint-brush.svg",
+      "./images/tools.svg"
     ];
 
     grid.innerHTML = "";
@@ -197,7 +406,7 @@
     categories.forEach((category, index) => {
       const card = document.createElement("a");
       card.className = "category-card";
-      card.href = `pages/catalogue.html?category=${encodeURIComponent(String(category || ""))}`;
+      card.href = `./pages/catalogue.html?category=${encodeURIComponent(String(category || ""))}`;
       card.innerHTML = `
         <img src="${icons[index % icons.length]}" alt="${escapeHtml(category)}">
         <span>${escapeHtml(category)}</span>
@@ -329,8 +538,85 @@
     }
   }
 
+  function readAdminSettingsSafe() {
+    const defaults = getDefaultAdminSettings();
+    try {
+      const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const settings = parsed?.settings && typeof parsed.settings === "object" ? parsed.settings : {};
+      const orderStatuses = parseTextList(settings.orderStatuses, defaults.orderStatuses, 20);
+      const defaultOrderStatusRaw = sanitizePlainText(settings.defaultOrderStatus || defaults.defaultOrderStatus, 80);
+      const defaultOrderStatus = orderStatuses.includes(defaultOrderStatusRaw)
+        ? defaultOrderStatusRaw
+        : orderStatuses[0];
+
+      return {
+        brandName: sanitizePlainText(settings.brandName || defaults.brandName, 80),
+        supportPhone: sanitizePlainText(settings.supportPhone || defaults.supportPhone, 80),
+        supportEmail: sanitizePlainText(settings.supportEmail || defaults.supportEmail, 120),
+        heroTitle: sanitizePlainText(settings.heroTitle || defaults.heroTitle, 160),
+        heroSubtitle: sanitizePlainText(settings.heroSubtitle || defaults.heroSubtitle, 260),
+        newsletterTitle: sanitizePlainText(settings.newsletterTitle || defaults.newsletterTitle, 140),
+        newsletterNote: sanitizePlainText(settings.newsletterNote || defaults.newsletterNote, 220),
+        orderStatuses,
+        defaultOrderStatus,
+        paymentMethods: parseTextList(settings.paymentMethods, defaults.paymentMethods, 20),
+        deliveryMethods: parseTextList(settings.deliveryMethods, defaults.deliveryMethods, 20),
+        contactTopics: parseTextList(settings.contactTopics, defaults.contactTopics, 30),
+        catalogPageSizeOptions: parseNumberList(settings.catalogPageSizeOptions, defaults.catalogPageSizeOptions, 20, 1, 60)
+      };
+    } catch {
+      return defaults;
+    }
+  }
+
+  function getDefaultAdminSettings() {
+    return {
+      brandName: "PROdom",
+      supportPhone: "+7 (000) 000-00-00",
+      supportEmail: "info@prodom.ru",
+      heroTitle: "Все для дома — в одном месте",
+      heroSubtitle: "Качественные хозяйственные товары и инструменты для вашего комфорта.",
+      newsletterTitle: "Готовы узнавать о новинках?",
+      newsletterNote: "Мы создаём комфорт и уют вместе с вами.",
+      orderStatuses: ["Новый", "Подтвержден", "В доставке", "Выполнен", "Отменен"],
+      defaultOrderStatus: "Новый",
+      paymentMethods: ["Карта онлайн", "Наличные при получении"],
+      deliveryMethods: ["Доставка", "Самовывоз"],
+      contactTopics: ["Вопрос по товару", "Доставка", "Сотрудничество", "Другое"],
+      catalogPageSizeOptions: [8, 12, 16, 24]
+    };
+  }
+
+  function parseTextList(value, fallback, maxItems) {
+    const list = Array.isArray(value) ? value : [];
+    const unique = [];
+    list.forEach((entry) => {
+      const clean = sanitizePlainText(entry || "", 80);
+      if (!clean) return;
+      if (unique.some((item) => item.toLowerCase() === clean.toLowerCase())) return;
+      if (unique.length >= Math.max(1, Number(maxItems) || 20)) return;
+      unique.push(clean);
+    });
+    return unique.length ? unique : fallback.slice();
+  }
+
+  function parseNumberList(value, fallback, maxItems, min, max) {
+    const list = Array.isArray(value) ? value : [];
+    const unique = [];
+    list.forEach((entry) => {
+      const number = Number(entry);
+      if (!Number.isFinite(number)) return;
+      const safe = Math.min(max, Math.max(min, Math.round(number)));
+      if (unique.includes(safe)) return;
+      if (unique.length >= Math.max(1, Number(maxItems) || 20)) return;
+      unique.push(safe);
+    });
+    return unique.length ? unique : fallback.slice();
+  }
+
   function getProductsJsonPath() {
-    return window.location.pathname.includes("/pages/") ? `../${DEFAULT_JSON_PATH}` : DEFAULT_JSON_PATH;
+    return window.location.pathname.includes("/pages/") ? "./../data/products.json" : DEFAULT_JSON_PATH;
   }
 
   async function readJsonCatalogSafe() {
@@ -631,13 +917,14 @@
   function resolveImageForCurrentPage(value) {
     const raw = String(value || "").trim();
     if (!raw) {
-      return location.pathname.includes("/pages/") ? "../images/logo.svg" : "images/logo.svg";
+      return location.pathname.includes("/pages/") ? "./../images/logo.svg" : "./images/logo.svg";
     }
     if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
     if (raw.startsWith("/")) return raw;
-    if (raw.startsWith("../") || raw.startsWith("./")) return raw;
-    if (location.pathname.includes("/pages/")) return `../${raw}`;
-    return raw;
+    if (raw.startsWith("./../") || raw.startsWith("./")) return raw;
+    if (raw.startsWith("../")) return `./${raw}`;
+    if (location.pathname.includes("/pages/")) return `./../${raw}`;
+    return `./${raw}`;
   }
 
   function formatPriceText(value) {
@@ -972,6 +1259,7 @@
     isFavourite,
     normalizeImagePath,
     readAdminCatalogSafe,
+    readAdminSettingsSafe,
     readJsonCatalogSafe,
     loadCatalogData,
     readFeedbackSafe,

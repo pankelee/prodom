@@ -50,9 +50,25 @@
 @media (max-width: 900px) {
     .catalog-layout {
         grid-template-columns: 1fr;
+        gap: 18px;
     }
 
     .catalog-filters {
         order: 2;
+        padding: 18px;
+    }
+}
+
+@media (max-width: 640px) {
+    .catalog-page-hero {
+        padding: 56px 0 26px;
+    }
+
+    .catalog-page-hero h1 {
+        font-size: 30px;
+    }
+
+    .catalog-layout {
+        margin-bottom: 70px;
     }
 }

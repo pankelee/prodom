@@ -71,3 +71,37 @@
     border-radius: 14px;
     font-weight: 500;
 }
+
+@media (max-width: 1024px) {
+    .about-hero {
+        padding: 56px 0 30px;
+    }
+
+    .advantages-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 30px;
+    }
+
+    .about-advantages,
+    .about-history {
+        margin-bottom: 70px;
+    }
+}
+
+@media (max-width: 768px) {
+    .about-lead,
+    .about-text,
+    .history-content {
+        font-size: 16px;
+    }
+
+    .advantages-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .adv-card,
+    .about-highlight {
+        padding: 18px;
+    }
+}
